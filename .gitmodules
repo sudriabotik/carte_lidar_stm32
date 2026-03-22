@@ -1,0 +1,3 @@
+[submodule "LD06"]
+	path = LD06
+	url = git@github.com:Robot-Maker-SAS/LD06.git

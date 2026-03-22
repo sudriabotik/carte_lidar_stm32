@@ -25,7 +25,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+# include "ld06_reader.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -52,11 +52,22 @@
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
-
+# define PUTCHAR_PROTOTYPE int __io_putchar(int ch)
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+PUTCHAR_PROTOTYPE
+{
+	//HAL_UART_Transmit(&huart4, (uint8_t*)&ch, 1, 0xFFFF);
+	return ch;
+}
+
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+    ld06_process_buffer();
+    HAL_UART_Receive_IT(&huart2, ld06_rx_buffer, LD06_RX_BUFFER_SIZE);
+}
 
 /* USER CODE END 0 */
 
@@ -94,7 +105,7 @@ int main(void)
   MX_TIM6_Init();
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
-
+  HAL_UART_Receive_IT(&huart2, ld06_rx_buffer, LD06_RX_BUFFER_SIZE);
   /* USER CODE END 2 */
 
   /* Infinite loop */
