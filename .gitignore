@@ -1,0 +1,23 @@
+# do not save vscode workspace settings
+.vscode/
+
+# ignore the cmake-generated build directory
+build/
+
+# ignore the driver folder, because it is very heavy and contains some binary files.
+# The content canbe regenerated with cubemx
+Drivers/
+
+# in case somebody mistakenly commits a zip or other binary files
+*.zip
+*.7z
+
+./log.txt
+compile_commands.json
+
+
+# stm32cubeIDE
+
+STM32CubeIDE/Debug
+STM32CubeIDE/Release
+STM32CubeIDE/Drivers
