@@ -27,8 +27,8 @@
 
 # define LD06_UART huart2
 
-/** Twice the size of the packet size, to compensate for data reception offsets if necessary */
-# define LD06_RX_BUFFER_SIZE 94
+/** Twice the size of the packet size, to compensate for data reception offsets if necessary 94 ? */
+# define LD06_RX_BUFFER_SIZE 10
 
 extern uint8_t ld06_rx_buffer[LD06_RX_BUFFER_SIZE];
 
