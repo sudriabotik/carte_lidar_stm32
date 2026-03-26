@@ -48,7 +48,7 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-
+int count = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -121,7 +121,7 @@ int main(void)
     // clear some flags related to buffer overflow
     __HAL_UART_CLEAR_OREFLAG(&huart2);
     __HAL_UART_CLEAR_FLAG(&huart2, UART_FLAG_RXNE);
-    
+
     HAL_StatusTypeDef status = HAL_UART_Receive(&huart2, ld06_rx_buffer, LD06_RX_BUFFER_SIZE, 2000);
     
     switch (status)
@@ -131,23 +131,25 @@ int main(void)
       break;
 
       case HAL_ERROR :
-      printf("no packet : HAL_ERROR\r\n");
+      // printf("no packet : HAL_ERROR\r\n");
       break;
 
       case HAL_TIMEOUT :
-      printf("no packet : HAL_TIMEOUT\r\n");
+      // printf("no packet : HAL_TIMEOUT\r\n");
       break;
 
       case HAL_BUSY :
-      printf("no packet : HAL_BUSY\r\n");
+      // printf("no packet : HAL_BUSY\r\n");
       break;
 
       default :
-      printf("no packet : ???\r\n");
+      // printf("no packet : ???\r\n");
     }
     
     
-    HAL_Delay(1000);
+    HAL_Delay(100);
+
+    count ++;
   }
   /* USER CODE END 3 */
 }
