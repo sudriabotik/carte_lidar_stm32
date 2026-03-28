@@ -49,6 +49,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user sources here
 
     ${CMAKE_CURRENT_SOURCE_DIR}/User/Src/lidar_reader.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/lib_robot/src_lib/coords.c
 )
 
 # Add include paths
@@ -56,6 +57,7 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined include paths
 
     ${CMAKE_CURRENT_SOURCE_DIR}/User/Inc/
+    ${CMAKE_CURRENT_SOURCE_DIR}/lib_robot/inc_lib/
 )
 
 # Add project symbols (macros)

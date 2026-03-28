@@ -29,6 +29,8 @@
 # include "usart.h"
 # include <inttypes.h>
 
+# include "coords.h"
+
 # define LIDAR_HEADER_BYTE 0x54
 # define LIDAR_PACKET_SIZE 47
 # define LIDAR_MEASUREMENT_AMOUNT 12
@@ -41,11 +43,6 @@
 
 extern uint8_t lidar_rx_buffer_dma_target[LIDAR_RX_BUFFER_SIZE];
 extern uint8_t lidar_rx_buffer[LIDAR_RX_BUFFER_SIZE];
-
-struct Point2D
-{
-	float x, y;
-};
 
 /**
  * Filled with readings until the lidar does a full revolution. Then, the content is put in lidar_current_points.
