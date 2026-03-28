@@ -48,7 +48,7 @@ target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user sources here
 
-    ${CMAKE_CURRENT_SOURCE_DIR}/User/Src/ld06_reader.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/User/Src/lidar_reader.c
 )
 
 # Add include paths

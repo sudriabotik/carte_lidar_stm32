@@ -18,6 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "dma.h"
 #include "fdcan.h"
 #include "tim.h"
 #include "usart.h"
@@ -25,7 +26,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-# include "ld06_reader.h"
+# include "lidar_reader.h"
 # include "stm32g4xx_hal_def.h"
 # include <stdio.h>
 /* USER CODE END Includes */
@@ -67,7 +68,9 @@ PUTCHAR_PROTOTYPE
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
-
+    *lidar_rx_buffer = *lidar_rx_buffer_dma_target;
+    lidar_process_buffer();
+    HAL_UART_Receive_DMA(&huart1, lidar_rx_buffer_dma_target, LIDAR_RX_BUFFER_SIZE);
 }
 
 /* USER CODE END 0 */
@@ -101,13 +104,14 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_DMA_Init();
   MX_FDCAN1_Init();
   MX_TIM2_Init();
   MX_TIM6_Init();
   MX_USART2_UART_Init();
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
-  //HAL_UART_Init(&huart2);
+  HAL_UART_Receive_DMA(&huart2, lidar_rx_buffer_dma_target, LIDAR_RX_BUFFER_SIZE);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -122,12 +126,12 @@ int main(void)
     __HAL_UART_CLEAR_OREFLAG(&huart2);
     __HAL_UART_CLEAR_FLAG(&huart2, UART_FLAG_RXNE);
 
-    HAL_StatusTypeDef status = HAL_UART_Receive(&huart2, ld06_rx_buffer, LD06_RX_BUFFER_SIZE, 2000);
+    HAL_StatusTypeDef status = HAL_UART_Receive(&huart2, lidar_rx_buffer, LIDAR_RX_BUFFER_SIZE, 2000);
     
     switch (status)
     {
       case HAL_OK :
-      ld06_process_buffer();
+      lidar_process_buffer();
       break;
 
       case HAL_ERROR :
