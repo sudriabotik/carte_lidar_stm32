@@ -53,7 +53,7 @@ extern struct Point2D lidar_points_buffer[LIDAR_POINTS_BUFFER_SIZE];
 /**
  * Contains the last full 360 degrees measurement of the lidar.
  */
-extern struct Point2D lidar_current_points[LIDAR_POINTS_BUFFER_SIZE];
+extern struct Point2D lidar_points_current[LIDAR_POINTS_BUFFER_SIZE];
 
 
 void lidar_process_buffer();

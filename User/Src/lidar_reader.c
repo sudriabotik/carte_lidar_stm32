@@ -10,15 +10,20 @@ uint8_t lidar_rx_buffer[];
 unsigned int points_buffer_index = 0;
 struct Point2D lidar_points_buffer[];
 unsigned int current_points_end = 0;
-struct Point2D lidar_current_points[];
+struct Point2D lidar_points_current[];
 
 // the lidar angle at the start of the current 360 scan
 float measurement_initial_angle;
 // 1 if a 360 measurement is ongoing, 0 if a new must be started at the next processed frame.
-int measurement_ongoing;
+int measurement_ongoing = 0;
 
 // if this switches from 1 to 0, then the current 360 measurement is finished.
 int measurement_initial_angle_comp = 0;
+
+// the index of the nearest point in lidar_points_current
+int current_nearest_point = 0;
+// the index of the nearest point in lidar_points_buffer
+int buffer_nearest_point = 0;
 
 
 
@@ -33,9 +38,13 @@ void lidar_compare_with_initial_angle(float current_angle)
 	measurement_initial_angle_comp = coord_get_delta_angle_deg(measurement_initial_angle, current_angle) < 0;
 }
 
+/**
+ * Called at the end of a 360 measurement.
+ * @note When this is called, lidar_points_current, current_points_end, and current_nearest_point are freshly set with new values.
+ */
 void lidar_process_360_points()
 {
-
+	printf("nearest obstacle is at an angle of %0.3f", lidar_points_current[current_nearest_point].x);
 }
 
 /**
@@ -55,6 +64,7 @@ void lidar_process_frame(int header_index)
 		// start a new 360 measurement
 		measurement_initial_angle = start_angle - 0.1f; // small margin for loop detection
 		measurement_ongoing = 1;
+		buffer_nearest_point = 0;
 	}
 	
 	// avoids the end angle being smaller than the start angle, which would make the step angle negative
@@ -78,17 +88,25 @@ void lidar_process_frame(int header_index)
 		if (last_comp_val == 1 && measurement_initial_angle_comp == 0)
 		{
 			// saves the 360 measurement's point and process it before processing the other points
-			*lidar_current_points = *lidar_points_buffer;
+			*lidar_points_current = *lidar_points_buffer;
 			current_points_end = points_buffer_index;
+			current_nearest_point = buffer_nearest_point;
+
+			measurement_ongoing = 0;
 			
 			lidar_process_360_points();
 		}
 
 		struct Point2D result;
-		result.x = cosf(current_angle / 180 * M_PI) * distance;
-		result.y = sinf(current_angle / 180 * M_PI) * distance;
+		// result.x = cosf(current_angle / 180 * M_PI) * distance;
+		// result.y = sinf(current_angle / 180 * M_PI) * distance;
+		result.x = current_angle;
+		result.y = distance;
 
 		lidar_points_buffer[points_buffer_index] = result;
+
+		if (result.y < lidar_points_buffer[buffer_nearest_point].y) buffer_nearest_point = points_buffer_index;
+		
 		points_buffer_index ++;
 
 		if (points_buffer_index >= LIDAR_POINTS_BUFFER_SIZE)
