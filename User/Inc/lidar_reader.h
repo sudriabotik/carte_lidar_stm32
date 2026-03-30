@@ -39,7 +39,7 @@
 # define LIDAR_UART huart2
 
 /** Twice the size of the packet size, to compensate for data reception offsets if necessary */
-# define LIDAR_RX_BUFFER_SIZE 94
+# define LIDAR_RX_BUFFER_SIZE 8000u
 
 extern uint8_t lidar_rx_buffer_dma_target[LIDAR_RX_BUFFER_SIZE];
 extern uint8_t lidar_rx_buffer[LIDAR_RX_BUFFER_SIZE];

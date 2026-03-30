@@ -2,6 +2,7 @@
 # include "stm32g4xx_hal.h"
 # include <stdio.h>
 # include <math.h>
+# include <memory.h>
 
 
 uint8_t lidar_rx_buffer_dma_target[];
@@ -29,8 +30,22 @@ int buffer_nearest_point = 0;
 
 void lidar_dump_points()
 {
+	__disable_irq();
+
 	printf("\r\nx y\r\n");
-	for (int i = 0; i < LIDAR_POINTS_BUFFER_SIZE; i++) printf("%.3f %.3f\r\n", lidar_points_buffer[i].x, lidar_points_buffer[i].y);
+
+	
+	for (unsigned int i = 0; i < current_points_end; i++)
+	{
+		// convert to position
+
+		float pos_x = cosf(lidar_points_current[i].x / 180 * M_PI) * lidar_points_current[i].y;
+		float pos_y = sinf(lidar_points_current[i].x / 180 * M_PI) * lidar_points_current[i].y;
+
+		printf("%.3f %.3f\r\n", pos_x, pos_y);
+	}
+
+	__enable_irq();
 }
 
 void lidar_compare_with_initial_angle(float current_angle)
@@ -50,7 +65,7 @@ void lidar_process_360_points()
 /**
  * @param header_index : the index in lidar_rx_buffer of the dataframe to read.
  */
-void lidar_process_frame(int header_index)
+int lidar_process_frame(unsigned int header_index)
 {
 	// The rotation speed of the lidar
 	// uint16_t speed = lidar_rx_buffer[header_index+2] | (lidar_rx_buffer[header_index+3] << 8);
@@ -62,6 +77,8 @@ void lidar_process_frame(int header_index)
 	if (measurement_ongoing == 0)
 	{
 		// start a new 360 measurement
+
+		printf("started new measurement\r\n");
 		measurement_initial_angle = start_angle - 0.1f; // small margin for loop detection
 		measurement_ongoing = 1;
 		buffer_nearest_point = 0;
@@ -72,11 +89,12 @@ void lidar_process_frame(int header_index)
 	
 	float step_angle = (float)(end_angle - start_angle) / LIDAR_MEASUREMENT_AMOUNT;
 
-	uint16_t mesurement_start = header_index + 6;
-	for (int i = mesurement_start; i < LIDAR_MEASUREMENT_AMOUNT; i++)
+	unsigned int mesurement_start = header_index + 6;
+
+	for (unsigned int i = 0; i < LIDAR_MEASUREMENT_AMOUNT; i++)
 	{
 		// the measured distance
-		int distance = lidar_rx_buffer[mesurement_start + i*3] | (lidar_rx_buffer[mesurement_start + i*3 + 1] << 8);
+		int distance = lidar_rx_buffer[header_index + mesurement_start + i*3] | (lidar_rx_buffer[header_index + mesurement_start + i*3 + 1] << 8);
 		
 		// the angle at which the lidar was when it took this measurement
 		float current_angle = start_angle + step_angle * i;
@@ -85,17 +103,25 @@ void lidar_process_frame(int header_index)
 		int last_comp_val = measurement_initial_angle_comp;
 		lidar_compare_with_initial_angle(current_angle);
 
+		printf("comp : %i\r\n", measurement_initial_angle_comp);
+		printf("angle : %.3f\r\n", current_angle);
+
+		
 		if (last_comp_val == 1 && measurement_initial_angle_comp == 0)
 		{
 			// saves the 360 measurement's point and process it before processing the other points
-			*lidar_points_current = *lidar_points_buffer;
+			memcpy(lidar_points_current, lidar_points_buffer, LIDAR_POINTS_BUFFER_SIZE);
 			current_points_end = points_buffer_index;
 			current_nearest_point = buffer_nearest_point;
 
 			measurement_ongoing = 0;
 			
 			lidar_process_360_points();
+			// lidar_dump_points();
+
+			// return 1;
 		}
+			
 
 		struct Point2D result;
 		// result.x = cosf(current_angle / 180 * M_PI) * distance;
@@ -108,13 +134,9 @@ void lidar_process_frame(int header_index)
 		if (result.y < lidar_points_buffer[buffer_nearest_point].y) buffer_nearest_point = points_buffer_index;
 		
 		points_buffer_index ++;
-
-		if (points_buffer_index >= LIDAR_POINTS_BUFFER_SIZE)
-		{
-			lidar_dump_points();
-			points_buffer_index = 0;
-		}
 	}
+
+	return 0;
 }
 
 
@@ -124,15 +146,17 @@ void lidar_process_frame(int header_index)
  */
 void lidar_process_buffer()
 {
-	// printf("packet reception\r\n");
+	// printf("processing buffer\r\n");
 
 	// stops searching for headers early enough
-	int end = LIDAR_RX_BUFFER_SIZE-1-LIDAR_PACKET_SIZE;
+	unsigned int end = LIDAR_RX_BUFFER_SIZE-1-LIDAR_PACKET_SIZE;
 
-	for (int i = 0; i < end; i++)
+	for (unsigned int i = 0; i < end; i++)
 	{
+		// printf("%X ", lidar_rx_buffer[i]);
 		if (lidar_rx_buffer[i] == LIDAR_HEADER_BYTE)
 		{
+			printf("processing packet at %i\r\n", i);
 			lidar_process_frame(i);
 		}
 	}

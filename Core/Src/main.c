@@ -29,6 +29,7 @@
 # include "lidar_reader.h"
 # include "stm32g4xx_hal_def.h"
 # include <stdio.h>
+# include <memory.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -68,9 +69,12 @@ PUTCHAR_PROTOTYPE
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
-    *lidar_rx_buffer = *lidar_rx_buffer_dma_target;
+    memcpy(lidar_rx_buffer, lidar_rx_buffer_dma_target, LIDAR_RX_BUFFER_SIZE);
     lidar_process_buffer();
-    HAL_UART_Receive_DMA(&huart1, lidar_rx_buffer_dma_target, LIDAR_RX_BUFFER_SIZE);
+    // printf("intrupt\r\n");
+   //  __HAL_UART_CLEAR_OREFLAG(&huart2);
+    // __HAL_UART_CLEAR_FLAG(&huart2, UART_FLAG_RXNE);
+    HAL_UART_Receive_DMA(&huart2, lidar_rx_buffer_dma_target, LIDAR_RX_BUFFER_SIZE);
 }
 
 /* USER CODE END 0 */
@@ -126,6 +130,8 @@ int main(void)
     __HAL_UART_CLEAR_OREFLAG(&huart2);
     __HAL_UART_CLEAR_FLAG(&huart2, UART_FLAG_RXNE);
 
+    /*
+
     HAL_StatusTypeDef status = HAL_UART_Receive(&huart2, lidar_rx_buffer, LIDAR_RX_BUFFER_SIZE, 2000);
     
     switch (status)
@@ -149,6 +155,8 @@ int main(void)
       default :
       // printf("no packet : ???\r\n");
     }
+
+    */
     
     
     HAL_Delay(100);
