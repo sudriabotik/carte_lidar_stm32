@@ -5,8 +5,8 @@
 # include <memory.h>
 
 
-uint8_t lidar_rx_buffer_dma_target[];
-uint8_t lidar_rx_buffer[];
+volatile uint8_t lidar_rx_buffer_dma_target[];
+volatile uint8_t lidar_rx_buffer[];
 volatile int lidar_rx_buffer_busy = 0;
 volatile int lidar_rx_buffer_new = 0;
 
@@ -72,6 +72,7 @@ int lidar_process_frame(unsigned int header_index)
 	// uint16_t speed = lidar_rx_buffer[header_index+2] | (lidar_rx_buffer[header_index+3] << 8);
 
 	// need to divide the value by 100 to get degrees
+	printf("received angle value start Ox%2X Ox%2X and end Ox%2X Ox%2X\r\n", lidar_rx_buffer[header_index+4], lidar_rx_buffer[header_index+5], lidar_rx_buffer[header_index + LIDAR_PACKET_SIZE - 5], lidar_rx_buffer[header_index + LIDAR_PACKET_SIZE - 4]);
 	float start_angle = (float) (((unsigned int)lidar_rx_buffer[header_index+4]) | (unsigned int)(lidar_rx_buffer[header_index+5] << 8)) / 100.0f;
 	float end_angle = (float) (((unsigned int)lidar_rx_buffer[header_index + LIDAR_PACKET_SIZE - 5]) | (unsigned int)(lidar_rx_buffer[header_index + LIDAR_PACKET_SIZE - 4] << 8)) / 100.0f;
 	printf("the angles are %.3f start and %.3f end\r\n", start_angle, end_angle);

@@ -41,8 +41,8 @@
 /** Twice the size of the packet size, to compensate for data reception offsets if necessary */
 # define LIDAR_RX_BUFFER_SIZE 4000u
 
-extern uint8_t lidar_rx_buffer_dma_target[LIDAR_RX_BUFFER_SIZE];
-extern uint8_t lidar_rx_buffer[LIDAR_RX_BUFFER_SIZE];
+extern volatile uint8_t lidar_rx_buffer_dma_target[LIDAR_RX_BUFFER_SIZE];
+extern volatile uint8_t lidar_rx_buffer[LIDAR_RX_BUFFER_SIZE];
 /** Indicates whether it is ok or not to write new data to the lidar_rx_buffer */
 extern volatile int lidar_rx_buffer_busy;
 extern volatile int lidar_rx_buffer_new;
