@@ -24,30 +24,29 @@ int measurement_ongoing = 0;
 int measurement_initial_angle_comp = 0;
 
 // the index of the nearest point in lidar_points_current
-int current_nearest_point = 0;
+unsigned int current_nearest_point = 0;
 // the index of the nearest point in lidar_points_buffer
-int buffer_nearest_point = 0;
+unsigned int buffer_nearest_point = 0;
 
 
 
 void lidar_dump_points()
 {
-	__disable_irq();
-
+	// __disable_irq();
 	printf("\r\nx y\r\n");
-
 	
 	for (unsigned int i = 0; i < current_points_end; i++)
 	{
 		// convert to position
 
-		float pos_x = cosf(lidar_points_current[i].x / 180 * M_PI) * lidar_points_current[i].y;
-		float pos_y = sinf(lidar_points_current[i].x / 180 * M_PI) * lidar_points_current[i].y;
+		float pos_x = cosf(lidar_points_buffer[i].x / 180 * M_PI) * lidar_points_buffer[i].y;
+		float pos_y = sinf(lidar_points_buffer[i].x / 180 * M_PI) * lidar_points_buffer[i].y;
+		// float pos_x = lidar_points_buffer[i].x;
+		// float pos_y = lidar_points_buffer[i].y;
 
 		printf("%.3f %.3f\r\n", pos_x, pos_y);
 	}
-
-	__enable_irq();
+	// __enable_irq();
 }
 
 void lidar_compare_with_initial_angle(float current_angle)
@@ -73,8 +72,9 @@ int lidar_process_frame(unsigned int header_index)
 	// uint16_t speed = lidar_rx_buffer[header_index+2] | (lidar_rx_buffer[header_index+3] << 8);
 
 	// need to divide the value by 100 to get degrees
-	float start_angle = (float) (lidar_rx_buffer[header_index+4] | (lidar_rx_buffer[header_index+5] << 8)) / 100.0f;
-	float end_angle = (float) (lidar_rx_buffer[header_index + LIDAR_PACKET_SIZE - 5] | (lidar_rx_buffer[header_index + LIDAR_PACKET_SIZE - 4] << 8)) / 100.0f;
+	float start_angle = (float) (((unsigned int)lidar_rx_buffer[header_index+4]) | (unsigned int)(lidar_rx_buffer[header_index+5] << 8)) / 100.0f;
+	float end_angle = (float) (((unsigned int)lidar_rx_buffer[header_index + LIDAR_PACKET_SIZE - 5]) | (unsigned int)(lidar_rx_buffer[header_index + LIDAR_PACKET_SIZE - 4] << 8)) / 100.0f;
+	printf("the angles are %.3f start and %.3f end\r\n", start_angle, end_angle);
 
 	if (measurement_ongoing == 0)
 	{
@@ -105,23 +105,27 @@ int lidar_process_frame(unsigned int header_index)
 		int last_comp_val = measurement_initial_angle_comp;
 		lidar_compare_with_initial_angle(current_angle);
 
-		printf("comp : %i\r\n", measurement_initial_angle_comp);
-		printf("angle : %.3f\r\n", current_angle);
+		// printf("comp : %i\r\n", measurement_initial_angle_comp);
+		// printf("angle : %.3f\r\n", current_angle);
+		// printf("points buffer index : %u\r\n", points_buffer_index);
 
-		
+		// checks if we are just now completing a full revolution since the start of the measurement
 		if (last_comp_val == 1 && measurement_initial_angle_comp == 0)
 		{
 			// saves the 360 measurement's point and process it before processing the other points
-			memcpy(lidar_points_current, lidar_points_buffer, LIDAR_POINTS_BUFFER_SIZE);
+			// memcpy(lidar_points_current, lidar_points_buffer, LIDAR_POINTS_BUFFER_SIZE);
 			current_points_end = points_buffer_index;
 			current_nearest_point = buffer_nearest_point;
+			printf("point buffer index and end : %u and %u", points_buffer_index, current_points_end);
 
 			measurement_ongoing = 0;
 			
 			lidar_process_360_points();
-			// lidar_dump_points();
+			lidar_dump_points();
 
-			// return 1;
+			points_buffer_index = 0;
+
+			return 1;
 		}
 			
 
@@ -131,11 +135,21 @@ int lidar_process_frame(unsigned int header_index)
 		result.x = current_angle;
 		result.y = distance;
 
+		if (result.x < 0.01f && result.x > -0.01f) printf("got a zero\r\n");
+
 		lidar_points_buffer[points_buffer_index] = result;
+		// printf("added point %.3f %.3f", result.x, result.y);
 
 		if (result.y < lidar_points_buffer[buffer_nearest_point].y) buffer_nearest_point = points_buffer_index;
 		
-		points_buffer_index ++;
+		if (points_buffer_index < LIDAR_POINTS_BUFFER_SIZE)
+		{
+			points_buffer_index ++;
+		}
+		else
+		{
+			printf("WARN : reached end of point buffer");
+		}
 	}
 
 	return 0;
@@ -149,23 +163,23 @@ int lidar_process_frame(unsigned int header_index)
 void lidar_process_buffer()
 {
 	lidar_rx_buffer_busy = 1;
-	// printf("processing buffer\r\n");
 
 	// stops searching for headers early enough
 	unsigned int end = LIDAR_RX_BUFFER_SIZE-1-LIDAR_PACKET_SIZE;
 
 	for (unsigned int i = 0; i < end; i++)
 	{
-		// printf("%X ", lidar_rx_buffer[i]);
 		if (lidar_rx_buffer[i] == LIDAR_HEADER_BYTE)
 		{
 			printf("processing packet at %i\r\n", i);
-			lidar_process_frame(i);
+			if (lidar_process_frame(i))
+			{
+				break;
+			}
 		}
 	}
 
 	lidar_rx_buffer_busy = 0;
-	lidar_rx_buffer_new = 0;
 }
 
 
