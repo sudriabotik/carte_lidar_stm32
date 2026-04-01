@@ -50,7 +50,7 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-int count = 0;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -69,12 +69,16 @@ PUTCHAR_PROTOTYPE
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
-    memcpy(lidar_rx_buffer, lidar_rx_buffer_dma_target, LIDAR_RX_BUFFER_SIZE);
-    lidar_process_buffer();
-    // printf("intrupt\r\n");
-   //  __HAL_UART_CLEAR_OREFLAG(&huart2);
+    if (! lidar_rx_buffer_busy)
+	{
+		memcpy(lidar_rx_buffer, lidar_rx_buffer_dma_target, LIDAR_RX_BUFFER_SIZE);
+		lidar_rx_buffer_new = 1;
+	}
+    // lidar_process_buffer();
+    printf("interrupt dma\r\n");
+    // __HAL_UART_CLEAR_OREFLAG(&huart2);
     // __HAL_UART_CLEAR_FLAG(&huart2, UART_FLAG_RXNE);
-    HAL_UART_Receive_DMA(&huart2, lidar_rx_buffer_dma_target, LIDAR_RX_BUFFER_SIZE);
+    // HAL_UART_Receive_DMA(&huart2, lidar_rx_buffer_dma_target, LIDAR_RX_BUFFER_SIZE);
 }
 
 /* USER CODE END 0 */
@@ -127,8 +131,8 @@ int main(void)
     /* USER CODE BEGIN 3 */
     
     // clear some flags related to buffer overflow
-    __HAL_UART_CLEAR_OREFLAG(&huart2);
-    __HAL_UART_CLEAR_FLAG(&huart2, UART_FLAG_RXNE);
+    // __HAL_UART_CLEAR_OREFLAG(&huart2);
+    // __HAL_UART_CLEAR_FLAG(&huart2, UART_FLAG_RXNE);
 
     /*
 
@@ -158,10 +162,16 @@ int main(void)
 
     */
     
+	if (lidar_rx_buffer_new)
+	{
+    	// lidar_process_buffer();
+		HAL_Delay(1000);
+		printf("processed a packet after a while\r\n");
+		lidar_rx_buffer_new = 0;
+	}
     
     HAL_Delay(100);
 
-    count ++;
   }
   /* USER CODE END 3 */
 }

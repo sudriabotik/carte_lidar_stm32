@@ -7,6 +7,8 @@
 
 uint8_t lidar_rx_buffer_dma_target[];
 uint8_t lidar_rx_buffer[];
+volatile int lidar_rx_buffer_busy = 0;
+volatile int lidar_rx_buffer_new = 0;
 
 unsigned int points_buffer_index = 0;
 struct Point2D lidar_points_buffer[];
@@ -146,6 +148,7 @@ int lidar_process_frame(unsigned int header_index)
  */
 void lidar_process_buffer()
 {
+	lidar_rx_buffer_busy = 1;
 	// printf("processing buffer\r\n");
 
 	// stops searching for headers early enough
@@ -160,6 +163,9 @@ void lidar_process_buffer()
 			lidar_process_frame(i);
 		}
 	}
+
+	lidar_rx_buffer_busy = 0;
+	lidar_rx_buffer_new = 0;
 }
 
 
