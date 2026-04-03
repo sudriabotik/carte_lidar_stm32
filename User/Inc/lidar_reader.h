@@ -24,6 +24,10 @@
  * IMPORTANT NOTES
  * I don't know what is the purpose of the length field. It is always 44 when the actual total byte count of the packet is 47.
  * So, the program use a hardcoded value of 47 instead.
+ *
+ *
+ * @note The data frame format has been confirmed by looking at the repositiory https://github.com/ldrobotSensorTeam/ldlidar_stl_ros2#,
+ * which seem official given the copyright headers in the files.
  */
 
 # include "usart.h"
@@ -41,8 +45,10 @@
 /** Twice the size of the packet size, to compensate for data reception offsets if necessary */
 # define LIDAR_RX_BUFFER_SIZE 4000u
 
-extern volatile uint8_t lidar_rx_buffer_dma_target[LIDAR_RX_BUFFER_SIZE];
-extern volatile uint8_t lidar_rx_buffer[LIDAR_RX_BUFFER_SIZE];
+extern volatile uint8_t lidar_rx_buffer_1[LIDAR_RX_BUFFER_SIZE];
+extern volatile uint8_t lidar_rx_buffer_2[LIDAR_RX_BUFFER_SIZE];
+/** Pointer indicating which rx buffer is currently used by the DMA */
+extern volatile uint8_t* lidar_rx_buffer_dma_pointer;
 /** Indicates whether it is ok or not to write new data to the lidar_rx_buffer */
 extern volatile int lidar_rx_buffer_busy;
 extern volatile int lidar_rx_buffer_new;
@@ -59,7 +65,7 @@ extern struct Point2D lidar_points_buffer[LIDAR_POINTS_BUFFER_SIZE];
 extern struct Point2D lidar_points_current[LIDAR_POINTS_BUFFER_SIZE];
 
 
-void lidar_process_buffer();
+void lidar_process_buffer(volatile uint8_t* buffer);
 
 
 

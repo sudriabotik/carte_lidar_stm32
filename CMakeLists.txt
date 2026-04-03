@@ -49,6 +49,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user sources here
 
     ${CMAKE_CURRENT_SOURCE_DIR}/User/Src/lidar_reader.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/User/Src/lipkg_copy.c
     ${CMAKE_CURRENT_SOURCE_DIR}/lib_robot/src_lib/coords.c
 )
 

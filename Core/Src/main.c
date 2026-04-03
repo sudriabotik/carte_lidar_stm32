@@ -71,14 +71,15 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
     if (! lidar_rx_buffer_busy)
 	{
-		memcpy(lidar_rx_buffer, lidar_rx_buffer_dma_target, LIDAR_RX_BUFFER_SIZE);
+		// swap the buffer of the DMA
+		lidar_rx_buffer_dma_pointer = lidar_rx_buffer_dma_pointer == lidar_rx_buffer_1 ? lidar_rx_buffer_2 : lidar_rx_buffer_1;
 		lidar_rx_buffer_new = 1;
 	}
     // lidar_process_buffer();
     // printf("interrupt dma\r\n");
     // __HAL_UART_CLEAR_OREFLAG(&huart2);
     // __HAL_UART_CLEAR_FLAG(&huart2, UART_FLAG_RXNE);
-    // HAL_UART_Receive_DMA(&huart2, lidar_rx_buffer_dma_target, LIDAR_RX_BUFFER_SIZE);
+    HAL_UART_Receive_DMA(&huart2, lidar_rx_buffer_dma_pointer, LIDAR_RX_BUFFER_SIZE);
 }
 
 /* USER CODE END 0 */
@@ -119,7 +120,8 @@ int main(void)
   MX_USART2_UART_Init();
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
-  HAL_UART_Receive_DMA(&huart2, lidar_rx_buffer_dma_target, LIDAR_RX_BUFFER_SIZE);
+  lidar_rx_buffer_dma_pointer = lidar_rx_buffer_1;
+  HAL_UART_Receive_DMA(&huart2, lidar_rx_buffer_dma_pointer, LIDAR_RX_BUFFER_SIZE);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -164,7 +166,7 @@ int main(void)
     
 	if (lidar_rx_buffer_new)
 	{
-    	lidar_process_buffer();
+    	lidar_process_buffer(lidar_rx_buffer_dma_pointer == lidar_rx_buffer_1 ? lidar_rx_buffer_2 : lidar_rx_buffer_1);
 		HAL_Delay(1000);
 		// printf("processed a packet after a while\r\n");
 		lidar_rx_buffer_new = 0;
