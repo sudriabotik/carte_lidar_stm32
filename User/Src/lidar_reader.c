@@ -61,9 +61,9 @@ void lidar_dump_points()
 
 
 
-void lidar_compare_with_initial_angle(float current_angle)
+int lidar_compare_with_initial_angle(float current_angle)
 {
-	measurement_initial_angle_comp = coord_get_delta_angle_deg(measurement_initial_angle, current_angle) < 0;
+	return coord_get_delta_angle_deg(measurement_initial_angle, current_angle) < 0;
 }
 
 
@@ -79,146 +79,19 @@ void lidar_process_360_points()
 
 
 
-/**
- * @param header_index : the index in lidar_rx_buffer of the dataframe to read.
- */
-int lidar_process_frame(unsigned int header_index, volatile uint8_t* buffer)
-{
-	// The rotation speed of the lidar
-	// uint16_t speed = lidar_rx_buffer[header_index+2] | (lidar_rx_buffer[header_index+3] << 8);
-
-	// need to divide the value by 100 to get degrees
-	/* printf("received angle value start Ox%2X Ox%2X and end Ox%2X Ox%2X\r\n",
-			buffer[header_index+4], buffer[header_index+5], buffer[header_index + LIDAR_PACKET_SIZE - 5], buffer[header_index + LIDAR_PACKET_SIZE - 4]); */
-	
-	float start_angle = (float) (((unsigned int)buffer[header_index+4]) | (unsigned int)(buffer[header_index+5] << 8)) / 100.0f;
-	float end_angle = (float) (((unsigned int)buffer[header_index + LIDAR_PACKET_SIZE - 5]) | (unsigned int)(buffer[header_index + LIDAR_PACKET_SIZE - 4] << 8)) / 100.0f;
-
-	// printf("the angles are %.3f start and %.3f end\r\n", start_angle, end_angle);
-
-	// avoids the end angle being smaller than the start angle, which would make the step angle negative
-	if (end_angle < start_angle) end_angle += 360.0f;
-
-	if (measurement_ongoing == 0)
-	{
-		// start a new 360 measurement
-		// printf("started new measurement\r\n");
-		measurement_initial_angle = start_angle - 0.1f; // small margin for loop detection
-		measurement_ongoing = 1;
-		buffer_nearest_point = 0; // reset the index of the nearest point
-	}
-	
-	float step_angle = (float)(end_angle - start_angle) / LIDAR_MEASUREMENT_AMOUNT;
-
-	unsigned int mesurement_start = header_index + 6;
-
-	for (unsigned int i = 0; i < LIDAR_MEASUREMENT_AMOUNT; i++)
-	{
-		// the measured distance
-		unsigned int distance = (unsigned int)(buffer[header_index + mesurement_start + i*3 + 0]) | (unsigned int)(buffer[header_index + mesurement_start + i*3 + 1] << 8);
-
-		// printf("the values of the measurement : Ox%2X Ox%2X Ox%2X\r\n", buffer[header_index + mesurement_start + i*3], buffer[header_index + mesurement_start + i*3 + 1], buffer[header_index + mesurement_start + i*3 + 2]);
-		// printf("the values of the measurement : Ox%u Ox%u Ox%u\r\n", buffer[header_index + mesurement_start + i*3], buffer[header_index + mesurement_start + i*3 + 1], buffer[header_index + mesurement_start + i*3 + 2]);
-		
-		// the angle at which the lidar was when it took this measurement
-		float current_angle = start_angle + step_angle * i;
-
-		// check if we completed a full loop since the start of the measurement
-		int last_comp_val = measurement_initial_angle_comp;
-		lidar_compare_with_initial_angle(current_angle);
-
-		// printf("comp : %i\r\n", measurement_initial_angle_comp);
-		// printf("angle : %.3f\r\n", current_angle);
-		// printf("points buffer index : %u\r\n", points_buffer_index);
-
-		// checks if we are just now completing a full revolution since the start of the measurement
-		if (last_comp_val == 1 && measurement_initial_angle_comp == 0)
-		{
-			lidar_process_360_points();
-			lidar_dump_points();
-
-			// reset the buffer position and measurement state
-			measurement_ongoing = 0;
-			points_buffer_index = 0;
-
-			return 1;
-		}
-			
-
-		struct Point2D result;
-		// result.x = cosf(current_angle / 180 * M_PI) * distance;
-		// result.y = sinf(current_angle / 180 * M_PI) * distance;
-		// stores the raw angle and distance in the point
-		result.x = current_angle;
-		result.y = distance;
-
-		if (result.x < 0.01f && result.x > -0.01f) printf("got a zero\r\n");
-
-		lidar_points_buffer[points_buffer_index] = result;
-		// printf("added point %.3f %.3f", result.x, result.y);
-
-		if (result.y < lidar_points_buffer[buffer_nearest_point].y) buffer_nearest_point = points_buffer_index;
-		
-		if (points_buffer_index < LIDAR_POINTS_BUFFER_SIZE)
-		{
-			points_buffer_index ++;
-		}
-		else
-		{
-			printf("WARN : reached end of point buffer");
-		}
-	}
-
-	return 0;
-}
-
-
-
-/**
- * 
- */
-/*
-void lidar_process_buffer(volatile uint8_t* buffer)
-{
-	lidar_rx_buffer_busy = 1;
-
-	// stops searching for headers early enough
-	unsigned int end = LIDAR_RX_BUFFER_SIZE-1-LIDAR_PACKET_SIZE;
-
-	for (unsigned int i = 0; i < end; i++)
-	{
-		if (buffer[i] == LIDAR_HEADER_BYTE)
-		{
-			// printf("processing packet at %i\r\n", i);
-			if (lidar_process_frame(i, buffer))
-			{
-				break;
-			}
-		}
-	}
-
-	lidar_rx_buffer_busy = 0;
-}
-*/
-
-
 void lidar_process_buffer(volatile uint8_t* buffer)
 {
 	lidar_rx_buffer_busy = 1;
 
 	for (unsigned int i = 0; i < LIDAR_RX_BUFFER_SIZE; i++)
 	{
-		// printf("0x%02X ", buffer[i]);
 		if (AnalysisOne(buffer[i]))
 		{
-			// printf("\r\n");
 			printf("one frame collected\r\n");
 
-			// do some preprocessing of the values
 			float angle_start = buffer_frame.start_angle / 100.0f;
 			float angle_end = buffer_frame.end_angle / 100.0f;
-			if (angle_end > 360.0f) angle_end -= 360.0f;
-			printf("start %.1f end %.1f\r\n", angle_start, angle_end);
+			if (angle_end > 360.0f) angle_end -= 360.0f; // normalize the end angle
 
 			if (! measurement_ongoing)
 			{
@@ -227,6 +100,8 @@ void lidar_process_buffer(volatile uint8_t* buffer)
 				points_buffer_index = 0;
 			}
 
+			// calculates the angle step between each measurement
+			// code taken from the LD06 lidar ROS driver
 			uint32_t diff = ((uint32_t)buffer_frame.end_angle + 36000 - (uint32_t)buffer_frame.start_angle) % 36000;
 			float step = (float)diff / (POINT_PER_PACK - 1) / 100.0;
 
@@ -234,13 +109,14 @@ void lidar_process_buffer(volatile uint8_t* buffer)
 			{
 				lidar_points_buffer[points_buffer_index].x = fmod(angle_start + x * step, 360.0f);
 				lidar_points_buffer[points_buffer_index].y = buffer_frame.point[x].distance;
-				// points_buffer_index ++;
+
 				if (points_buffer_index < LIDAR_POINTS_BUFFER_SIZE)
 				{
 					points_buffer_index ++;
 				}
 				else
 				{
+					// shouldn't happen, the buffer should be big enough
 					printf("WARN : reached end of point buffer");
 				}
 			}
@@ -248,7 +124,7 @@ void lidar_process_buffer(volatile uint8_t* buffer)
 			// check if we completed a full loop since the start of the measurement
 			int last_comp_val = measurement_initial_angle_comp;
 			lidar_compare_with_initial_angle(angle_end);
-			printf("last comp %i, comp %i, end angle %.1f, init_angle %.1f\r\n", last_comp_val, measurement_initial_angle_comp, angle_end, measurement_initial_angle);
+			// printf("last comp %i, comp %i, end angle %.1f, init_angle %.1f\r\n", last_comp_val, measurement_initial_angle_comp, angle_end, measurement_initial_angle);
 
 			if (last_comp_val == 1 && measurement_initial_angle_comp == 0)
 			{
@@ -259,6 +135,7 @@ void lidar_process_buffer(volatile uint8_t* buffer)
 				measurement_ongoing = 0;
 				points_buffer_index = 0;
 
+				// break and stop processing the rx buffer, one measurement is enough
 				break;
 			}
 		}
@@ -267,8 +144,6 @@ void lidar_process_buffer(volatile uint8_t* buffer)
 			// printf("frame dropped\r\n");
 		}
 	}
-
-	printf("done processing buffer\r\n");
 
 	lidar_rx_buffer_busy = 0;
 }
