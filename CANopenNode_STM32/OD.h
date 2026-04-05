@@ -14,9 +14,9 @@
         Project File: DS301_profile.eds
         File Version: 1
 
-        Created:      11/23/2020 1:00:00 PM
+        Created:      11/23/2020 2:00:00 PM
         Created By:   
-        Modified:     3/18/2026 7:44:00 PM
+        Modified:     4/5/2026 12:52:00 PM
         Modified By:  
 
     Device Info:
@@ -40,8 +40,8 @@
 #define OD_CNT_SDO_CLI 1
 #define OD_CNT_TIME 1
 #define OD_CNT_SYNC 1
-#define OD_CNT_RPDO 2
-#define OD_CNT_TPDO 2
+#define OD_CNT_RPDO 1
+#define OD_CNT_TPDO 1
 #define OD_CNT_GFC 0
 #define OD_CNT_SRDO 0
 #define OD_CNT_STORAGE 1
@@ -93,24 +93,12 @@ typedef struct {
         uint8_t transmissionType;
     } x1400_RPDOCommunicationParameter;
     struct {
-        uint8_t maxSub_index;
-        uint32_t COB_IDUsedByRPDO;
-        uint8_t transmissionType;
-    } x1401_RPDOCommunicationParameter;
-    struct {
         uint8_t numberOfMappedObjects;
         uint32_t mappedObject_1;
         uint32_t mappedObject_2;
         uint32_t mappedObject_3;
         uint32_t mappedObject_4;
     } x1600_RPDOMappingParameter;
-    struct {
-        uint8_t numberOfMappedObjects;
-        uint32_t mappedObject_1;
-        uint32_t mappedObject_2;
-        uint32_t mappedObject_3;
-        uint32_t mappedObject_4;
-    } x1601_RPDOMappingParameter;
     struct {
         uint8_t maxSub_index;
         uint32_t COB_IDUsedByTPDO;
@@ -121,28 +109,11 @@ typedef struct {
         uint8_t SYNCStartValue;
     } x1800_TPDOCommunicationParameter;
     struct {
-        uint8_t maxSub_index;
-        uint32_t COB_IDUsedByTPDO;
-        uint8_t transmissionType;
-        uint16_t inhibitTime;
-        uint8_t compatibilityEntry;
-        uint16_t eventTimer;
-        uint8_t SYNCStartValue;
-    } x1801_TPDOCommunicationParameter;
-    struct {
         uint8_t numberOfMappedObjects;
         uint32_t mappedObject_1;
         uint32_t mappedObject_2;
         uint32_t mappedObject_3;
-        uint32_t mappedObject_4;
-        uint32_t mappedObject_5;
     } x1A00_TPDOMappingParameter;
-    struct {
-        uint8_t numberOfMappedObjects;
-        uint32_t mappedObject_1;
-        uint32_t mappedObject_2;
-        uint32_t mappedObject_3;
-    } x1A01_TPDOMappingParameter;
 } OD_PERSIST_COMM_t;
 
 typedef struct {
@@ -172,6 +143,10 @@ typedef struct {
     int16_t x2200_pos_robot_x;
     int16_t x2201_pos_robot_y;
     int16_t x2202_pos_robot_theta;
+    int16_t x2203_lin_vel_robot;
+    uint16_t x2300_pos_robot_adversaire_x;
+    uint16_t x2301_pos_robot_adversaire_y;
+    uint8_t x2302_status_carte_lidar;
 } OD_RAM_t;
 
 #ifndef OD_ATTR_PERSIST_COMM
@@ -211,29 +186,29 @@ extern OD_ATTR_OD OD_t *OD;
 #define OD_ENTRY_H1200 &OD->list[15]
 #define OD_ENTRY_H1280 &OD->list[16]
 #define OD_ENTRY_H1400 &OD->list[17]
-#define OD_ENTRY_H1401 &OD->list[18]
-#define OD_ENTRY_H1600 &OD->list[19]
-#define OD_ENTRY_H1601 &OD->list[20]
-#define OD_ENTRY_H1800 &OD->list[21]
-#define OD_ENTRY_H1801 &OD->list[22]
-#define OD_ENTRY_H1A00 &OD->list[23]
-#define OD_ENTRY_H1A01 &OD->list[24]
-#define OD_ENTRY_H2000 &OD->list[25]
-#define OD_ENTRY_H2001 &OD->list[26]
-#define OD_ENTRY_H2002 &OD->list[27]
-#define OD_ENTRY_H2003 &OD->list[28]
-#define OD_ENTRY_H2004 &OD->list[29]
-#define OD_ENTRY_H2005 &OD->list[30]
-#define OD_ENTRY_H2006 &OD->list[31]
-#define OD_ENTRY_H2007 &OD->list[32]
-#define OD_ENTRY_H2100 &OD->list[33]
-#define OD_ENTRY_H2101 &OD->list[34]
-#define OD_ENTRY_H2102 &OD->list[35]
-#define OD_ENTRY_H2103 &OD->list[36]
-#define OD_ENTRY_H2104 &OD->list[37]
-#define OD_ENTRY_H2200 &OD->list[38]
-#define OD_ENTRY_H2201 &OD->list[39]
-#define OD_ENTRY_H2202 &OD->list[40]
+#define OD_ENTRY_H1600 &OD->list[18]
+#define OD_ENTRY_H1800 &OD->list[19]
+#define OD_ENTRY_H1A00 &OD->list[20]
+#define OD_ENTRY_H2000 &OD->list[21]
+#define OD_ENTRY_H2001 &OD->list[22]
+#define OD_ENTRY_H2002 &OD->list[23]
+#define OD_ENTRY_H2003 &OD->list[24]
+#define OD_ENTRY_H2004 &OD->list[25]
+#define OD_ENTRY_H2005 &OD->list[26]
+#define OD_ENTRY_H2006 &OD->list[27]
+#define OD_ENTRY_H2007 &OD->list[28]
+#define OD_ENTRY_H2100 &OD->list[29]
+#define OD_ENTRY_H2101 &OD->list[30]
+#define OD_ENTRY_H2102 &OD->list[31]
+#define OD_ENTRY_H2103 &OD->list[32]
+#define OD_ENTRY_H2104 &OD->list[33]
+#define OD_ENTRY_H2200 &OD->list[34]
+#define OD_ENTRY_H2201 &OD->list[35]
+#define OD_ENTRY_H2202 &OD->list[36]
+#define OD_ENTRY_H2203 &OD->list[37]
+#define OD_ENTRY_H2300 &OD->list[38]
+#define OD_ENTRY_H2301 &OD->list[39]
+#define OD_ENTRY_H2302 &OD->list[40]
 
 
 /*******************************************************************************
@@ -257,29 +232,29 @@ extern OD_ATTR_OD OD_t *OD;
 #define OD_ENTRY_H1200_SDOServerParameter &OD->list[15]
 #define OD_ENTRY_H1280_SDOClientParameter &OD->list[16]
 #define OD_ENTRY_H1400_RPDOCommunicationParameter &OD->list[17]
-#define OD_ENTRY_H1401_RPDOCommunicationParameter &OD->list[18]
-#define OD_ENTRY_H1600_RPDOMappingParameter &OD->list[19]
-#define OD_ENTRY_H1601_RPDOMappingParameter &OD->list[20]
-#define OD_ENTRY_H1800_TPDOCommunicationParameter &OD->list[21]
-#define OD_ENTRY_H1801_TPDOCommunicationParameter &OD->list[22]
-#define OD_ENTRY_H1A00_TPDOMappingParameter &OD->list[23]
-#define OD_ENTRY_H1A01_TPDOMappingParameter &OD->list[24]
-#define OD_ENTRY_H2000_ACTION_ID &OD->list[25]
-#define OD_ENTRY_H2001_param_1 &OD->list[26]
-#define OD_ENTRY_H2002_param_2 &OD->list[27]
-#define OD_ENTRY_H2003_param_3 &OD->list[28]
-#define OD_ENTRY_H2004_param_4 &OD->list[29]
-#define OD_ENTRY_H2005_param_5 &OD->list[30]
-#define OD_ENTRY_H2006_param_6 &OD->list[31]
-#define OD_ENTRY_H2007_command_ID &OD->list[32]
-#define OD_ENTRY_H2100_current_command_status &OD->list[33]
-#define OD_ENTRY_H2101_current_command_id &OD->list[34]
-#define OD_ENTRY_H2102_current_action_id &OD->list[35]
-#define OD_ENTRY_H2103_last_completed_command_id &OD->list[36]
-#define OD_ENTRY_H2104_command_error_code &OD->list[37]
-#define OD_ENTRY_H2200_pos_robot_x &OD->list[38]
-#define OD_ENTRY_H2201_pos_robot_y &OD->list[39]
-#define OD_ENTRY_H2202_pos_robot_theta &OD->list[40]
+#define OD_ENTRY_H1600_RPDOMappingParameter &OD->list[18]
+#define OD_ENTRY_H1800_TPDOCommunicationParameter &OD->list[19]
+#define OD_ENTRY_H1A00_TPDOMappingParameter &OD->list[20]
+#define OD_ENTRY_H2000_ACTION_ID &OD->list[21]
+#define OD_ENTRY_H2001_param_1 &OD->list[22]
+#define OD_ENTRY_H2002_param_2 &OD->list[23]
+#define OD_ENTRY_H2003_param_3 &OD->list[24]
+#define OD_ENTRY_H2004_param_4 &OD->list[25]
+#define OD_ENTRY_H2005_param_5 &OD->list[26]
+#define OD_ENTRY_H2006_param_6 &OD->list[27]
+#define OD_ENTRY_H2007_command_ID &OD->list[28]
+#define OD_ENTRY_H2100_current_command_status &OD->list[29]
+#define OD_ENTRY_H2101_current_command_id &OD->list[30]
+#define OD_ENTRY_H2102_current_action_id &OD->list[31]
+#define OD_ENTRY_H2103_last_completed_command_id &OD->list[32]
+#define OD_ENTRY_H2104_command_error_code &OD->list[33]
+#define OD_ENTRY_H2200_pos_robot_x &OD->list[34]
+#define OD_ENTRY_H2201_pos_robot_y &OD->list[35]
+#define OD_ENTRY_H2202_pos_robot_theta &OD->list[36]
+#define OD_ENTRY_H2203_lin_vel_robot &OD->list[37]
+#define OD_ENTRY_H2300_pos_robot_adversaire_x &OD->list[38]
+#define OD_ENTRY_H2301_pos_robot_adversaire_y &OD->list[39]
+#define OD_ENTRY_H2302_status_carte_lidar &OD->list[40]
 
 
 /*******************************************************************************
