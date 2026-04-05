@@ -6,14 +6,24 @@
 
 # include <lipkg_copy.h>
 
+
+
 volatile uint8_t lidar_rx_buffer_1[];
 volatile uint8_t lidar_rx_buffer_2[];
 volatile uint8_t* lidar_rx_buffer_dma_pointer;
 volatile int lidar_rx_buffer_busy = 0;
 volatile int lidar_rx_buffer_new = 0;
 
+
+
+/**
+ * Filled with readings until the lidar does a full revolution.
+ * Once the full revolution is done, the data is interpreted,
+ * and this buffer gets filled from the start again, and so on.
+ */
+struct Point2D lidar_points_buffer[LIDAR_POINTS_BUFFER_SIZE];
+/** The current write index in lidar_points_buffer */
 unsigned int points_buffer_index = 0;
-struct Point2D lidar_points_buffer[];
 
 
 
@@ -23,6 +33,7 @@ float measurement_initial_angle;
 int measurement_ongoing = 0;
 // if this switches from 1 to 0, then the current 360 measurement is finished.
 int measurement_initial_angle_comp = 0;
+
 
 
 // the index of the nearest point in lidar_points_buffer
@@ -38,7 +49,6 @@ void lidar_dump_points()
 	for (unsigned int i = 0; i < points_buffer_index; i++)
 	{
 		// convert to position
-
 		// float pos_x = cosf(lidar_points_buffer[i].x / 180 * M_PI) * lidar_points_buffer[i].y;
 		// float pos_y = sinf(lidar_points_buffer[i].x / 180 * M_PI) * lidar_points_buffer[i].y;
 		float pos_x = lidar_points_buffer[i].x;
@@ -49,10 +59,14 @@ void lidar_dump_points()
 	// __enable_irq();
 }
 
+
+
 void lidar_compare_with_initial_angle(float current_angle)
 {
 	measurement_initial_angle_comp = coord_get_delta_angle_deg(measurement_initial_angle, current_angle) < 0;
 }
+
+
 
 /**
  * Called at the end of a 360 measurement.
@@ -62,6 +76,8 @@ void lidar_process_360_points()
 {
 	// printf("nearest obstacle is at an angle of %.3f", lidar_points_current[buffer_nearest_point].x);
 }
+
+
 
 /**
  * @param header_index : the index in lidar_rx_buffer of the dataframe to read.

@@ -35,16 +35,13 @@
 
 # include "coords.h"
 
-# define LIDAR_HEADER_BYTE 0x54
-# define LIDAR_PACKET_SIZE 47
-# define LIDAR_MEASUREMENT_AMOUNT 12
 # define LIDAR_POINTS_BUFFER_SIZE 1000u
-
+# define LIDAR_RX_BUFFER_SIZE 4000u
 # define LIDAR_UART huart2
 
-/** Twice the size of the packet size, to compensate for data reception offsets if necessary */
-# define LIDAR_RX_BUFFER_SIZE 4000u
 
+
+/** Two UART RX buffers we are alternating through, one receives DMA data and the other is processed */
 extern volatile uint8_t lidar_rx_buffer_1[LIDAR_RX_BUFFER_SIZE];
 extern volatile uint8_t lidar_rx_buffer_2[LIDAR_RX_BUFFER_SIZE];
 /** Pointer indicating which rx buffer is currently used by the DMA */
@@ -53,16 +50,6 @@ extern volatile uint8_t* lidar_rx_buffer_dma_pointer;
 extern volatile int lidar_rx_buffer_busy;
 extern volatile int lidar_rx_buffer_new;
 
-/**
- * Filled with readings until the lidar does a full revolution. Then, the content is put in lidar_current_points.
- * Then, it gets filled again, and the process repeats.
- */
-extern struct Point2D lidar_points_buffer[LIDAR_POINTS_BUFFER_SIZE];
-
-/**
- * Contains the last full 360 degrees measurement of the lidar.
- */
-extern struct Point2D lidar_points_current[LIDAR_POINTS_BUFFER_SIZE];
 
 
 void lidar_process_buffer(volatile uint8_t* buffer);

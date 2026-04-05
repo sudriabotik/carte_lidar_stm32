@@ -1,3 +1,6 @@
 [submodule "lib_robot"]
 	path = lib_robot
 	url = git@github.com:sudriabotik/lib_robot.git
+[submodule "CANopenNode"]
+	path = CANopenNode
+	url = https://github.com/CANopenNode/CANopenNode.git
