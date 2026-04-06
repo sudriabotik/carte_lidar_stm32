@@ -75,6 +75,8 @@ int lidar_compare_with_initial_angle(float current_angle)
 void lidar_process_360_points()
 {
 	// printf("nearest obstacle is at an angle of %.3f", lidar_points_current[buffer_nearest_point].x);
+	
+	
 }
 
 
