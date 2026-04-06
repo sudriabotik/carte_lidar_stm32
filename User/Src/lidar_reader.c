@@ -21,9 +21,9 @@ volatile int lidar_rx_buffer_new = 0;
  * Once the full revolution is done, the data is interpreted,
  * and this buffer gets filled from the start again, and so on.
  */
-struct Point2D lidar_points_buffer[LIDAR_POINTS_BUFFER_SIZE];
+struct lidar_datapoint lidar_points_buffer[LIDAR_POINTS_BUFFER_SIZE];
 /** The current write index in lidar_points_buffer */
-unsigned int points_buffer_index = 0;
+int points_buffer_index = 0;
 
 
 
@@ -51,8 +51,8 @@ void lidar_dump_points()
 		// convert to position
 		// float pos_x = cosf(lidar_points_buffer[i].x / 180 * M_PI) * lidar_points_buffer[i].y;
 		// float pos_y = sinf(lidar_points_buffer[i].x / 180 * M_PI) * lidar_points_buffer[i].y;
-		float pos_x = lidar_points_buffer[i].x;
-		float pos_y = lidar_points_buffer[i].y;
+		float pos_x = lidar_points_buffer[i].x_pos;
+		float pos_y = lidar_points_buffer[i].y_pos;
 
 		printf("%.3f %.3f\r\n", pos_x, pos_y);
 	}
@@ -67,7 +67,6 @@ int lidar_compare_with_initial_angle(float current_angle)
 }
 
 
-
 /**
  * Called at the end of a 360 measurement.
  * @note When this is called, lidar_points_current, current_points_end, and current_nearest_point are freshly set with new values.
@@ -75,7 +74,8 @@ int lidar_compare_with_initial_angle(float current_angle)
 void lidar_process_360_points()
 {
 	// printf("nearest obstacle is at an angle of %.3f", lidar_points_current[buffer_nearest_point].x);
-	
+	printf("processing 360 data\r\n");
+	lidar_processor_find_blob(lidar_points_buffer, points_buffer_index);
 	
 }
 
@@ -109,8 +109,11 @@ void lidar_process_buffer(volatile uint8_t* buffer)
 
 			for (int x = 0; x < POINT_PER_PACK; x++)
 			{
-				lidar_points_buffer[points_buffer_index].x = fmod(angle_start + x * step, 360.0f);
-				lidar_points_buffer[points_buffer_index].y = buffer_frame.point[x].distance;
+				float current_angle = fmod(angle_start + x * step, 360.0f);
+				lidar_points_buffer[points_buffer_index].angle = roundf(current_angle * 100.0f);
+				lidar_points_buffer[points_buffer_index].distance = buffer_frame.point[x].distance;
+				lidar_points_buffer[points_buffer_index].x_pos = cosf(current_angle) * buffer_frame.point[x].distance;
+				lidar_points_buffer[points_buffer_index].y_pos = sinf(current_angle) * buffer_frame.point[x].distance;
 
 				if (points_buffer_index < LIDAR_POINTS_BUFFER_SIZE)
 				{

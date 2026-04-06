@@ -34,9 +34,10 @@
 # include <inttypes.h>
 
 # include "coords.h"
+# include "lidar_data_processor.h"
 
-# define LIDAR_POINTS_BUFFER_SIZE 1000u
-# define LIDAR_RX_BUFFER_SIZE 4000u
+# define LIDAR_POINTS_BUFFER_SIZE 1000
+# define LIDAR_RX_BUFFER_SIZE 4000
 # define LIDAR_UART huart2
 
 
