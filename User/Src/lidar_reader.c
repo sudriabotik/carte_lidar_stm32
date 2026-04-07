@@ -85,8 +85,6 @@ void lidar_process_buffer(volatile uint8_t* buffer)
 {
 	lidar_rx_buffer_busy = 1;
 
-	printf("process\r\n");
-
 	for (unsigned int i = 0; i < LIDAR_RX_BUFFER_SIZE; i++)
 	{
 		if (AnalysisOne(buffer[i]))
@@ -130,8 +128,8 @@ void lidar_process_buffer(volatile uint8_t* buffer)
 
 			// check if we completed a full loop since the start of the measurement
 			int last_comp_val = measurement_initial_angle_comp;
-			lidar_compare_with_initial_angle(angle_end);
-			// printf("last comp %i, comp %i, end angle %.1f, init_angle %.1f\r\n", last_comp_val, measurement_initial_angle_comp, angle_end, measurement_initial_angle);
+			measurement_initial_angle_comp = lidar_compare_with_initial_angle(angle_end);
+			printf("last comp %i, comp %i, end angle %.1f, init_angle %.1f\r\n", last_comp_val, measurement_initial_angle_comp, angle_end, measurement_initial_angle);
 
 			if (last_comp_val == 1 && measurement_initial_angle_comp == 0)
 			{

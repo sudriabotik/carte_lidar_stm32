@@ -81,7 +81,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 	// flags to clear buffer overflow error on the UART
     // __HAL_UART_CLEAR_OREFLAG(&huart2);
     // __HAL_UART_CLEAR_FLAG(&huart2, UART_FLAG_RXNE);
-    HAL_UART_Receive_DMA(&huart2, (uint8_t*)lidar_rx_buffer_dma_pointer, LIDAR_RX_BUFFER_SIZE);
+    HAL_UART_Receive_DMA(&huart2, lidar_rx_buffer_dma_pointer, LIDAR_RX_BUFFER_SIZE);
     // printf("dma\r\n");
 }
 
@@ -131,12 +131,10 @@ int main(void)
   canopenNodeSTM32.desiredNodeID = 3;
   canopenNodeSTM32.baudrate = 500; //  ce parametre ne sert à rien, c'est comme le tuto. 
   // canopen_app_init(&canopenNodeSTM32);
-
-  HAL_Delay(1000);
   
 
   lidar_rx_buffer_dma_pointer = lidar_rx_buffer_1;
-  HAL_UART_Receive_DMA(&huart2, (uint8_t*)lidar_rx_buffer_dma_pointer, LIDAR_RX_BUFFER_SIZE);
+  HAL_UART_Receive_DMA(&huart2, lidar_rx_buffer_dma_pointer, LIDAR_RX_BUFFER_SIZE);
   printf("started DMA\r\n");
   /* USER CODE END 2 */
 
