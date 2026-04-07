@@ -123,6 +123,8 @@ int main(void)
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
 
+  // printf("interrupts mask %lu\r\n", __get_PRIMASK());
+
   /** CANopen stack initialization */
   CANopenNodeSTM32 canopenNodeSTM32;
   canopenNodeSTM32.CANHandle = &hfdcan1;
@@ -185,6 +187,8 @@ int main(void)
 		// printf("processed a packet after a while\r\n");
 		lidar_rx_buffer_new = 0;
 	}
+
+  // printf("interrupts mask %lu\r\n", __get_PRIMASK());
 
   // canopen_app_process();
     

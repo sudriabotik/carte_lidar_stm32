@@ -48,14 +48,21 @@ void lidar_dump_points()
 	
 	for (int i = 0; i < points_buffer_index; i++)
 	{
+
+		if (filter_out_area(get_world_position(lidar_points_buffer[i])))
+		{
+			continue;
+		}
 		// convert to position
 		// float pos_x = cosf(lidar_points_buffer[i].x / 180 * M_PI) * lidar_points_buffer[i].y;
 		// float pos_y = sinf(lidar_points_buffer[i].x / 180 * M_PI) * lidar_points_buffer[i].y;
-		float pos_x = lidar_points_buffer[i].x_pos;
-		float pos_y = lidar_points_buffer[i].y_pos;
+		float pos_x = (float)lidar_points_buffer[i].x_pos;
+		float pos_y = (float)lidar_points_buffer[i].y_pos;
 
 		printf("%.3f %.3f\r\n", pos_x, pos_y);
 	}
+
+	printf("--END--\r\n");
 	// __enable_irq();
 }
 
@@ -112,8 +119,8 @@ void lidar_process_buffer(volatile uint8_t* buffer)
 				float current_angle = fmod(angle_start + x * step, 360.0f);
 				lidar_points_buffer[points_buffer_index].angle = roundf(current_angle * 100.0f);
 				lidar_points_buffer[points_buffer_index].distance = buffer_frame.point[x].distance;
-				lidar_points_buffer[points_buffer_index].x_pos = cosf(current_angle) * buffer_frame.point[x].distance;
-				lidar_points_buffer[points_buffer_index].y_pos = sinf(current_angle) * buffer_frame.point[x].distance;
+				lidar_points_buffer[points_buffer_index].x_pos = cosf(current_angle / 180 * M_PI) * buffer_frame.point[x].distance;
+				lidar_points_buffer[points_buffer_index].y_pos = sinf(current_angle / 180 * M_PI) * buffer_frame.point[x].distance;
 
 				if (points_buffer_index < LIDAR_POINTS_BUFFER_SIZE)
 				{
@@ -133,7 +140,7 @@ void lidar_process_buffer(volatile uint8_t* buffer)
 
 			if (last_comp_val == 1 && measurement_initial_angle_comp == 0)
 			{
-				// lidar_process_360_points();
+				lidar_process_360_points();
 				lidar_dump_points();
 
 				// reset the buffer position and measurement state
