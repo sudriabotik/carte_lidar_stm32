@@ -46,7 +46,7 @@ void lidar_dump_points()
 	// __disable_irq();
 	printf("\r\nx y\r\n");
 	
-	for (unsigned int i = 0; i < points_buffer_index; i++)
+	for (int i = 0; i < points_buffer_index; i++)
 	{
 		// convert to position
 		// float pos_x = cosf(lidar_points_buffer[i].x / 180 * M_PI) * lidar_points_buffer[i].y;
@@ -135,7 +135,7 @@ void lidar_process_buffer(volatile uint8_t* buffer)
 
 			if (last_comp_val == 1 && measurement_initial_angle_comp == 0)
 			{
-				lidar_process_360_points();
+				// lidar_process_360_points();
 				lidar_dump_points();
 
 				// reset the buffer position and measurement state
