@@ -85,6 +85,8 @@ void lidar_process_buffer(volatile uint8_t* buffer)
 {
 	lidar_rx_buffer_busy = 1;
 
+	printf("process\r\n");
+
 	for (unsigned int i = 0; i < LIDAR_RX_BUFFER_SIZE; i++)
 	{
 		if (AnalysisOne(buffer[i]))
