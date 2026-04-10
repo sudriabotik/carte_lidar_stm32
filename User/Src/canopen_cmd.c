@@ -1,9 +1,10 @@
 # include "canopen_cmd.h"
 
 # include <stdint.h>
-# include "OD.h"
-# include "CO_PDO.h"
 # include "CO_app_STM32.h"
+# include "OD.h"
+//# include "CO_PDO.h"
+
 
 /* Référence externe au stack CANopen */
 extern CANopenNodeSTM32* canopenNodeSTM32;
