@@ -132,7 +132,7 @@ int main(void)
   canopenNodeSTM32.timerHandle = &htim6;
   canopenNodeSTM32.desiredNodeID = 3;
   canopenNodeSTM32.baudrate = 500; //  ce parametre ne sert à rien, c'est comme le tuto. 
-  // canopen_app_init(&canopenNodeSTM32);
+  canopen_app_init(&canopenNodeSTM32);
   
 
   lidar_rx_buffer_dma_pointer = lidar_rx_buffer_1;
