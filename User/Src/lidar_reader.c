@@ -8,8 +8,8 @@
 
 
 
-volatile uint8_t lidar_rx_buffer_1[];
-volatile uint8_t lidar_rx_buffer_2[];
+volatile uint8_t lidar_rx_buffer_1[LIDAR_RX_BUFFER_SIZE] = {0}; // claude
+volatile uint8_t lidar_rx_buffer_2[LIDAR_RX_BUFFER_SIZE] = {0}; // claude
 volatile uint8_t* lidar_rx_buffer_dma_pointer;
 volatile int lidar_rx_buffer_busy = 0;
 volatile int lidar_rx_buffer_new = 0;
@@ -65,7 +65,6 @@ void lidar_dump_points()
 	printf("--END--\r\n");
 	// __enable_irq();
 }
-
 
 
 int lidar_compare_with_initial_angle(float current_angle)

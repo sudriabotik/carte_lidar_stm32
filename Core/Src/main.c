@@ -18,7 +18,6 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-#include "dma.h"
 #include "fdcan.h"
 #include "tim.h"
 #include "usart.h"
@@ -27,6 +26,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 # include "lidar_reader.h"
+# include "lipkg_copy.h"
 # include "stm32g4xx_hal_def.h"
 # include <stdio.h>
 # include <memory.h>
@@ -70,21 +70,6 @@ PUTCHAR_PROTOTYPE
 	return ch;
 }
 
-void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
-{
-    if (! lidar_rx_buffer_busy)
-	{
-		// swap the buffer of the DMA
-		lidar_rx_buffer_dma_pointer = lidar_rx_buffer_dma_pointer == lidar_rx_buffer_1 ? lidar_rx_buffer_2 : lidar_rx_buffer_1;
-		lidar_rx_buffer_new = 1;
-	}
-	// flags to clear buffer overflow error on the UART
-    // __HAL_UART_CLEAR_OREFLAG(&huart2);
-    // __HAL_UART_CLEAR_FLAG(&huart2, UART_FLAG_RXNE);
-    HAL_UART_Receive_DMA(&huart2, lidar_rx_buffer_dma_pointer, LIDAR_RX_BUFFER_SIZE);
-    // printf("dma\r\n");
-}
-
 /* USER CODE END 0 */
 
 /**
@@ -116,7 +101,6 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
-  MX_DMA_Init();
   MX_FDCAN1_Init();
   MX_TIM2_Init();
   MX_TIM6_Init();
@@ -124,21 +108,19 @@ int main(void)
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
 
-  // printf("interrupts mask %lu\r\n", __get_PRIMASK());
-
   /** CANopen stack initialization */
   CANopenNodeSTM32 canopenNodeSTM32;
   canopenNodeSTM32.CANHandle = &hfdcan1;
   canopenNodeSTM32.HWInitFunction = MX_FDCAN1_Init;
   canopenNodeSTM32.timerHandle = &htim6;
   canopenNodeSTM32.desiredNodeID = 3;
-  canopenNodeSTM32.baudrate = 500; //  ce parametre ne sert à rien, c'est comme le tuto. 
-  canopen_app_init(&canopenNodeSTM32);
-  
+  canopenNodeSTM32.baudrate = 500;
+  canopen_app_init(&canopenNodeSTM32);  // Désactivé pour éviter conflit DMA
 
-  lidar_rx_buffer_dma_pointer = lidar_rx_buffer_1;
-  HAL_UART_Receive_DMA(&huart2, lidar_rx_buffer_dma_pointer, LIDAR_RX_BUFFER_SIZE);
-  printf("started DMA\r\n");
+  printf("[LIDAR] Using POLLING mode for UART2 reception\r\n");
+  printf("[LIDAR] LIDAR configured at %lu bauds\r\n", huart2.Init.BaudRate);
+  printf("[LIDAR] Ready to receive LIDAR data\r\n");
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -148,52 +130,53 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    
-    // clear some flags related to buffer overflow
-    // __HAL_UART_CLEAR_OREFLAG(&huart2);
-    // __HAL_UART_CLEAR_FLAG(&huart2, UART_FLAG_RXNE);
 
-    /*
+    // Lecture ultra-rapide (sans prints bloquants!)
+    static uint32_t byte_count = 0;
+    static uint32_t frame_count = 0;
+    static uint32_t error_count = 0;
+    static uint32_t last_print_time = 0;
 
-    HAL_StatusTypeDef status = HAL_UART_Receive(&huart2, lidar_rx_buffer, LIDAR_RX_BUFFER_SIZE, 2000);
-    
-    switch (status)
-    {
-      case HAL_OK :
-      lidar_process_buffer();
-      break;
-
-      case HAL_ERROR :
-      // printf("no packet : HAL_ERROR\r\n");
-      break;
-
-      case HAL_TIMEOUT :
-      // printf("no packet : HAL_TIMEOUT\r\n");
-      break;
-
-      case HAL_BUSY :
-      // printf("no packet : HAL_BUSY\r\n");
-      break;
-
-      default :
-      // printf("no packet : ???\r\n");
+    // Efface les erreurs UART SANS PRINT (trop lent!)
+    if (__HAL_UART_GET_FLAG(&huart2, UART_FLAG_ORE)) {
+      __HAL_UART_CLEAR_FLAG(&huart2, UART_CLEAR_OREF);
+      error_count++;
+    }
+    if (__HAL_UART_GET_FLAG(&huart2, UART_FLAG_FE)) {
+      __HAL_UART_CLEAR_FLAG(&huart2, UART_CLEAR_FEF);
+    }
+    if (__HAL_UART_GET_FLAG(&huart2, UART_FLAG_NE)) {
+      __HAL_UART_CLEAR_FLAG(&huart2, UART_CLEAR_NEF);
+    }
+    if (__HAL_UART_GET_FLAG(&huart2, UART_FLAG_PE)) {
+      __HAL_UART_CLEAR_FLAG(&huart2, UART_CLEAR_PEF);
     }
 
-    */
-    
-	if (lidar_rx_buffer_new)
-	{
-    lidar_process_buffer(lidar_rx_buffer_dma_pointer == lidar_rx_buffer_1 ? lidar_rx_buffer_2 : lidar_rx_buffer_1);
-		// HAL_Delay(1000);
-		// printf("processed a packet after a while\r\n");
-		lidar_rx_buffer_new = 0;
-	}
+    // Lit TOUS les octets disponibles rapidement
+    while (__HAL_UART_GET_FLAG(&huart2, UART_FLAG_RXNE))
+    {
+      uint8_t byte = (uint8_t)(huart2.Instance->RDR & 0xFFU);
+      byte_count++;
 
-  // printf("interrupts mask %lu\r\n", __get_PRIMASK());
+      // Traite octet par octet avec le parser
+      if (AnalysisOne(byte))
+      {
+        frame_count++;
+      }
+    }
 
-  // canopen_app_process();
-    
-  HAL_Delay(50);
+    // Print SEULEMENT toutes les secondes (hors de la boucle rapide!)
+    uint32_t current_time = HAL_GetTick();
+    if (current_time - last_print_time >= 1000) {
+      printf("[STATS] Bytes: %lu | Frames: %lu | Errors: %lu\r\n",
+             byte_count, frame_count, error_count);
+      byte_count = 0;
+      frame_count = 0;
+      error_count = 0;
+      last_print_time = current_time;
+    }
+
+  canopen_app_process();  // À activer plus tard si besoin
 
   }
   /* USER CODE END 3 */
