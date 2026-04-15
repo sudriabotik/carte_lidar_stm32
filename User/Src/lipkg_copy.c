@@ -48,6 +48,12 @@ typedef enum
 	DATA,
 } state_enum;
 
+/**
+ * @brief Parse un octet LIDAR avec machine à états (HEADER → VER_LEN → DATA)
+ * @param byte L'octet reçu depuis UART2
+ * @return 1 si frame complète valide (47 bytes, CRC8 correct), 0 sinon
+ * @note Recherche 0x54 0x2C puis collecte 45 bytes, vérifie CRC8
+ */
 int AnalysisOne(uint8_t byte) {
 
   static state_enum state = HEADER;

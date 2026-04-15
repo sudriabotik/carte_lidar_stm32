@@ -37,7 +37,7 @@
 # include "lidar_data_processor.h"
 
 # define LIDAR_POINTS_BUFFER_SIZE 1000
-# define LIDAR_RX_BUFFER_SIZE 4000
+# define LIDAR_RX_BUFFER_SIZE 2000  // Réduit pour éviter overflow du buffer de points (2000 bytes = ~42 frames × 12 pts = 504 points)
 # define LIDAR_UART huart2
 
 
@@ -45,16 +45,30 @@
 /** Two UART RX buffers we are alternating through, one receives DMA data and the other is processed */
 extern volatile uint8_t lidar_rx_buffer_1[LIDAR_RX_BUFFER_SIZE];
 extern volatile uint8_t lidar_rx_buffer_2[LIDAR_RX_BUFFER_SIZE];
-/** Pointer indicating which rx buffer is currently used by the DMA */
+
+/** Double buffering avec interruption UART2 */
+extern volatile uint16_t uart_buffer_write_index;  // Position écriture dans buffer actif (0-4095)
+extern volatile int8_t uart_buffer_active;         // Buffer actif pour ISR: -1 = pleins, 1 = buffer_1, 2 = buffer_2
+extern volatile uint8_t uart_buffer_ready;         // Buffer prêt à traiter: 0, 1 ou 2
+
+/** Legacy DMA variables (non utilisées en mode interruption) */
 extern volatile uint8_t* lidar_rx_buffer_dma_pointer;
-/** Indicates whether it is ok or not to write new data to the lidar_rx_buffer */
 extern volatile int lidar_rx_buffer_busy;
 extern volatile int lidar_rx_buffer_new;
 
-
-
+/**
+ * @brief Traite un buffer DMA complet (recherche frames LIDAR)
+ * @param buffer Pointeur vers lidar_rx_buffer_1 ou lidar_rx_buffer_2
+ * @note Parse le buffer entier avec AnalysisOne(), détecte scan 360°
+ */
 void lidar_process_buffer(volatile uint8_t* buffer);
 
-
+/**
+ * @brief Traite une frame LIDAR en mode polling (accumulation pour scan 360°)
+ * @note À appeler après chaque frame valide détectée par AnalysisOne()
+ * @note Accumule les points dans lidar_points_buffer[], détecte fin scan 360°
+ * @note Appelle lidar_process_360_points() quand révolution complète
+ */
+void lidar_process_polling(void);
 
 # endif

@@ -30,6 +30,12 @@ typedef struct __attribute__((packed)) {
 
 extern LiDARFrameTypeDef buffer_frame;
 
+/**
+ * @brief Parse un octet LIDAR (machine à états)
+ * @param byte L'octet reçu depuis UART2
+ * @return 1 si une frame complète de 47 bytes est validée (CRC OK), 0 sinon
+ * @note Remplit buffer_frame quand une frame valide est détectée
+ */
 int AnalysisOne(uint8_t byte);
 
 # endif

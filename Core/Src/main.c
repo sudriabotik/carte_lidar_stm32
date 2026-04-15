@@ -115,68 +115,111 @@ int main(void)
   canopenNodeSTM32.timerHandle = &htim6;
   canopenNodeSTM32.desiredNodeID = 3;
   canopenNodeSTM32.baudrate = 500;
-  canopen_app_init(&canopenNodeSTM32);  // Désactivé pour éviter conflit DMA
+  canopen_app_init(&canopenNodeSTM32);
 
-  printf("[LIDAR] Using POLLING mode for UART2 reception\r\n");
+  /** Mode POLLING simple - PAS d'interruptions UART2 */
+  // __HAL_UART_ENABLE_IT(&huart2, UART_IT_RXNE);  // DÉSACTIVÉ: polling pur
+
+  printf("[LIDAR] Using POLLING mode (simple 1-buffer) for UART2 reception\r\n");
   printf("[LIDAR] LIDAR configured at %lu bauds\r\n", huart2.Init.BaudRate);
+  printf("[LIDAR] Buffer size: %d bytes (single buffer)\r\n", LIDAR_RX_BUFFER_SIZE);
   printf("[LIDAR] Ready to receive LIDAR data\r\n");
 
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+
+  // Machine à états simple: 0 = FILLING, 1 = PROCESSING
+  static int buffer_state = 0;
+  static uint16_t buffer_index = 0;
+
+  // Variables de diagnostic
+  static uint32_t loop_count = 0;
+  static uint32_t last_print_tick = 0;
+  static uint32_t bytes_received = 0;
+  static uint32_t errors_ore = 0;
+  static uint32_t errors_fe = 0;
+  static uint32_t errors_ne = 0;
+
   while (1)
   {
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
 
-    // Lecture ultra-rapide (sans prints bloquants!)
-    static uint32_t byte_count = 0;
-    static uint32_t frame_count = 0;
-    static uint32_t error_count = 0;
-    static uint32_t last_print_time = 0;
+    loop_count++;
 
-    // Efface les erreurs UART SANS PRINT (trop lent!)
-    if (__HAL_UART_GET_FLAG(&huart2, UART_FLAG_ORE)) {
-      __HAL_UART_CLEAR_FLAG(&huart2, UART_CLEAR_OREF);
-      error_count++;
-    }
-    if (__HAL_UART_GET_FLAG(&huart2, UART_FLAG_FE)) {
-      __HAL_UART_CLEAR_FLAG(&huart2, UART_CLEAR_FEF);
-    }
-    if (__HAL_UART_GET_FLAG(&huart2, UART_FLAG_NE)) {
-      __HAL_UART_CLEAR_FLAG(&huart2, UART_CLEAR_NEF);
-    }
-    if (__HAL_UART_GET_FLAG(&huart2, UART_FLAG_PE)) {
-      __HAL_UART_CLEAR_FLAG(&huart2, UART_CLEAR_PEF);
-    }
-
-    // Lit TOUS les octets disponibles rapidement
-    while (__HAL_UART_GET_FLAG(&huart2, UART_FLAG_RXNE))
+    // === DIAGNOSTIC: Affiche les flags UART2 toutes les secondes ===
+    if (HAL_GetTick() - last_print_tick >= 1000)
     {
-      uint8_t byte = (uint8_t)(huart2.Instance->RDR & 0xFFU);
-      byte_count++;
+      printf("[DEBUG] RXNE=%d ORE=%d FE=%d NE=%d PE=%d TXE=%d TC=%d | Loops=%lu Bytes=%u State=%d Idx=%u\r\n",
+        __HAL_UART_GET_FLAG(&huart2, UART_FLAG_RXNE) ? 1 : 0,
+        __HAL_UART_GET_FLAG(&huart2, UART_FLAG_ORE) ? 1 : 0,
+        __HAL_UART_GET_FLAG(&huart2, UART_FLAG_FE) ? 1 : 0,
+        __HAL_UART_GET_FLAG(&huart2, UART_FLAG_NE) ? 1 : 0,
+        __HAL_UART_GET_FLAG(&huart2, UART_FLAG_PE) ? 1 : 0,
+        __HAL_UART_GET_FLAG(&huart2, UART_FLAG_TXE) ? 1 : 0,
+        __HAL_UART_GET_FLAG(&huart2, UART_FLAG_TC) ? 1 : 0,
+        loop_count, bytes_received, buffer_state, buffer_index);
 
-      // Traite octet par octet avec le parser
-      if (AnalysisOne(byte))
+      printf("[ERRORS] ORE=%lu FE=%lu NE=%lu\r\n", errors_ore, errors_fe, errors_ne);
+
+      last_print_tick = HAL_GetTick();
+      loop_count = 0;  // Reset compteur de loops
+    }
+
+    // === CLEAR des flags d'erreur UART2 ===
+    if (__HAL_UART_GET_FLAG(&huart2, UART_FLAG_ORE))
+    {
+      __HAL_UART_CLEAR_FLAG(&huart2, UART_CLEAR_OREF);
+      errors_ore++;
+    }
+    if (__HAL_UART_GET_FLAG(&huart2, UART_FLAG_FE))
+    {
+      __HAL_UART_CLEAR_FLAG(&huart2, UART_CLEAR_FEF);
+      errors_fe++;
+    }
+    if (__HAL_UART_GET_FLAG(&huart2, UART_FLAG_NE))
+    {
+      __HAL_UART_CLEAR_FLAG(&huart2, UART_CLEAR_NEF);
+      errors_ne++;
+    }
+
+    // === ÉTAT FILLING: Remplir le buffer via polling UART2 ===
+    if (buffer_state == 0)
+    {
+      // Polling: Y a-t-il un byte disponible sur UART2 ?
+      if (__HAL_UART_GET_FLAG(&huart2, UART_FLAG_RXNE))
       {
-        frame_count++;
+        // Lire le byte (efface automatiquement le flag RXNE)
+        uint8_t byte = (uint8_t)(huart2.Instance->RDR & 0xFFU);
+
+        // Stocker dans le buffer unique
+        lidar_rx_buffer_1[buffer_index] = byte;
+        buffer_index++;
+        bytes_received++;
+
+        // Buffer plein (4000 bytes) ? → Passer en mode PROCESSING
+        if (buffer_index >= LIDAR_RX_BUFFER_SIZE)
+        {
+          buffer_state = 1;  // PROCESSING
+          buffer_index = 0;
+        }
       }
     }
+    // === ÉTAT PROCESSING: Traiter le buffer complet ===
+    else
+    {
+      // Traiter les 4000 bytes avec AnalysisOne() et détection 360°
+      lidar_process_buffer(lidar_rx_buffer_1);
 
-    // Print SEULEMENT toutes les secondes (hors de la boucle rapide!)
-    uint32_t current_time = HAL_GetTick();
-    if (current_time - last_print_time >= 1000) {
-      printf("[STATS] Bytes: %lu | Frames: %lu | Errors: %lu\r\n",
-             byte_count, frame_count, error_count);
-      byte_count = 0;
-      frame_count = 0;
-      error_count = 0;
-      last_print_time = current_time;
+      // Traitement terminé → Retour en mode FILLING
+      buffer_state = 0;
+      buffer_index = 0;
     }
 
-  canopen_app_process();  // À activer plus tard si besoin
+    canopen_app_process();
 
   }
   /* USER CODE END 3 */
@@ -243,7 +286,7 @@ void Error_Handler(void)
   __disable_irq();
   while (1)
   {
-    printf("ERROR\r\n");
+    printf("Error_Handler\r\n");
     HAL_Delay(1000);
   }
   /* USER CODE END Error_Handler_Debug */
