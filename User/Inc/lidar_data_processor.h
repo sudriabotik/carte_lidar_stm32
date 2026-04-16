@@ -4,6 +4,8 @@
 # include <stdint.h>
 # include "coords.h"
 
+#define MAX_TERRAIN_POINTS  500  // Maximum de points LIDAR dans un scan 360°
+
 struct lidar_datapoint
 {
 	int16_t x_pos;
@@ -12,6 +14,23 @@ struct lidar_datapoint
 	uint16_t distance;
 	/** store the angle, in HUNDREDTH OF A DEGREE */
 	uint16_t angle;
+};
+
+/**
+ * Structure pour un point en coordonnées terrain (world)
+ */
+struct TerrainPoint {
+	float x;           // Coordonnées terrain X (mm)
+	float y;           // Coordonnées terrain Y (mm)
+	uint16_t distance; // Distance au robot LIDAR (mm)
+};
+
+/**
+ * Structure pour retourner les points filtrés avec coordonnées terrain
+ */
+struct FilteredPoints {
+	struct TerrainPoint points[MAX_TERRAIN_POINTS];
+	int count;  // Nombre de points valides après filtrage
 };
 
 struct Point2D get_world_position(struct lidar_datapoint point);
@@ -25,15 +44,21 @@ struct Point2D get_world_position(struct lidar_datapoint point);
  */
 struct Point2D get_world_position_v2(struct lidar_datapoint point);
 
+
+struct Point2D get_world_position_v3(struct lidar_datapoint point);
+
+
 int filter_out_area(struct Point2D world_coord);
 
 /**
- * @brief Compte et affiche les points LIDAR à l'intérieur du terrain de jeu
+ * @brief Filtre les points LIDAR pour ne garder que ceux dans le terrain
  * @param data Buffer des points LIDAR d'un scan 360°
  * @param data_size Nombre de points dans le buffer
- * @note Fonction de TEST pour valider le référentiel terrain
+ * @return Structure contenant les points valides (distance > 105mm ET dans terrain)
+ * @note Filtre 1: Distance > 105mm (points erronés du LIDAR)
+ *       Filtre 2: Coordonnées terrain dans [0-3000, 0-2000]mm
  */
-void print_count_point_in_map(struct lidar_datapoint* data, int data_size);
+struct FilteredPoints point_in_map(struct lidar_datapoint* data, int data_size);
 
 struct Point2D lidar_processor_find_blob(struct lidar_datapoint* data, int data_size);
 

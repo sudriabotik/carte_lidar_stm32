@@ -16,7 +16,7 @@ int blob_w_max = 100;
 // ce n'est pas trés clair ces variables
 int16_t lidar_x_pos = 700;
 int16_t lidar_y_pos = 300;
-float lidar_angle = 90; 
+float lidar_angle = -90; 
 
 //on utilise 
 uint16_t pos_x_robot = 700 ;
@@ -185,78 +185,60 @@ int filter_out_distance(struct lidar_datapoint* data, int c_index)
 }
 
 /**
- * @brief Compte et affiche les points LIDAR qui sont à l'intérieur du terrain de jeu
+ * @brief Filtre les points LIDAR pour ne retourner que ceux dans le terrain
  * @param data Buffer des points LIDAR mesurés lors d'un scan 360°
  * @param data_size Nombre de points dans le buffer (typiquement ~400 points)
+ * @return Structure contenant uniquement les points valides (distance > 105mm ET dans terrain)
  *
- * Cette fonction sert à TESTER le référentiel terrain en comptant:
- * - Combien de points sont DANS le terrain (0 ≤ X ≤ 3000mm, 0 ≤ Y ≤ 2000mm)
- * - Combien de points sont HORS du terrain (murs, espace vide)
- *
- * Test attendu:
- * - Terrain VIDE → Peu de points inside (~50-100 points, seulement les bords)
- * - Ajouter obstacle → Points inside AUGMENTE (ex: ~150-200 points)
- * - Retirer obstacle → Points inside DIMINUE (retour ~50-100)
+ * Filtres appliqués :
+ * 1. Distance > 105mm (rejette les points erronés trop proches du LIDAR)
+ * 2. Coordonnées terrain dans [0-3000, 0-2000]mm (rejette points hors terrain)
  */
-void print_count_point_in_map(struct lidar_datapoint* data, int data_size)
+struct FilteredPoints point_in_map(struct lidar_datapoint* data, int data_size)
 {
-	int total_points_analyzed = 0;      // Total de points reçus du LIDAR
-	int points_inside_terrain = 0;      // Points DANS le terrain (valides)
-	int points_outside_terrain = 0;     // Points HORS terrain (ignorés)
-
-	lidar_datapoint data_filtred ; 
-
-	printf("=== TEST REFERENCIEL TERRAIN ===\r\n");
-	printf("Points DANS terrain (angle, dist, LIDAR_xy, TERRAIN_xy):\r\n");
+	struct FilteredPoints result = {0};
+	int points_rejected_distance = 0;   // Points rejetés car distance < 105mm
+	int points_outside_terrain = 0;     // Points hors du terrain
 
 	// Parcourir tous les points du scan 360°
 	for (int i = 0; i < data_size; i++)
 	{
-		total_points_analyzed++;
+		// Filtre 1 : Distance minimale (points erronés du LIDAR)
+		if (data[i].distance < 105)
+		{
+			points_rejected_distance++;
+			continue;
+		}
 
-
-		// Transformer le point du repère LIDAR → repère terrain (monde)
+		// Filtre 2 : Conversion en coordonnées terrain
 		struct Point2D world_pos = get_world_position_v3(data[i]);
 
-		// Vérifier si le point est dans le terrain (0-3000mm × 0-2000mm)
+		// Filtre 3 : Points hors terrain (0-3000, 0-2000)
 		if (filter_out_area(world_pos))
 		{
-			// Point HORS terrain (à ignorer)
 			points_outside_terrain++;
+			continue;
 		}
-		else
-		{
-			// Point DANS terrain (valide pour analyse)
-			points_inside_terrain++;
 
-			// Afficher les détails de ce point pour debug
-			// Format: Point X: a=XXX.X° d=XXXXmm L(x,y) T(x,y)
-			float angle_deg = data[i].angle / 100.0f;  // Convertir centièmes de degré → degrés
-			printf("P%d: a=%.1f d=%u L(%d,%d) T(%.0f,%.0f)\r\n",
-			       points_inside_terrain,
-			       angle_deg,
-			       data[i].distance,
-			       data[i].x_pos,
-			       data[i].y_pos,
-			       world_pos.x,
-			       world_pos.y);
-		}
+		// Point valide → stocker les coordonnées terrain (world_pos déjà calculé)
+		result.points[result.count].x = world_pos.x;
+		result.points[result.count].y = world_pos.y;
+		result.points[result.count].distance = data[i].distance;
+		result.count++;
+
+		// Debug: Afficher les coordonnées terrain de chaque point valide
+		printf("  Point %d: T(%.0f, %.0f) mm\r\n", result.count, world_pos.x, world_pos.y);
 	}
 
-	// Calculer le pourcentage de points dans le terrain
-	float percentage_inside = 0.0f;
-	if (total_points_analyzed > 0)
-	{
-		percentage_inside = (float)points_inside_terrain / (float)total_points_analyzed * 100.0f;
-	}
+	// Affichage debug du filtrage
+	printf("=== FILTRAGE POINTS ===\r\n");
+	printf("Total points recus: %d\r\n", data_size);
+	printf("Points rejetes (distance < 105mm): %d\r\n", points_rejected_distance);
+	printf("Points hors terrain: %d\r\n", points_outside_terrain);
+	printf("Points valides dans terrain: %d\r\n", result.count);
+	printf("----------------------\r\n");
 
-	// Affichage du résumé
-	printf("---\r\n");
-	printf("Total points analyses: %d\r\n", total_points_analyzed);
-	printf("Points DANS terrain (0-3000, 0-2000): %d\r\n", points_inside_terrain);
-	printf("Points HORS terrain: %d\r\n", points_outside_terrain);
-	printf("Pourcentage dans terrain: %.1f%%\r\n", percentage_inside);
-	printf("--END--\r\n");
+	return result;
 }
 
 struct Point2D lidar_processor_find_blob(struct lidar_datapoint* data, int data_size)

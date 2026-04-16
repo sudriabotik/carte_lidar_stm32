@@ -5,6 +5,7 @@
 # include <memory.h>
 
 # include <lipkg_copy.h>
+# include "adversary_tracking.h"
 
 
 
@@ -90,23 +91,27 @@ int lidar_compare_with_initial_angle(float current_angle)
 
 
 /**
- * @brief Traite les données d'un scan complet 360° (détection obstacles)
+ * @brief Traite les données d'un scan complet 360° (détection et tracking adversaire)
  * @note Appelée quand le LIDAR a fait une révolution complète
  * @note Utilise lidar_points_buffer[] rempli avec ~400 points (angle + distance + x + y)
- * @note Lance la détection de blobs (obstacles) via lidar_processor_find_blob()
+ * @note Chaîne de traitement : Filtrage → Tracking adversaire
  */
 void lidar_process_360_points()
 {
-	// printf("nearest obstacle is at an angle of %.3f", lidar_points_current[buffer_nearest_point].x);
 	printf("processing 360 data\r\n");
 
-	// pour tester les points dans le terrain on ignore
-	// la fonction lidar_processor_find_blob
-	//lidar_processor_find_blob(lidar_points_buffer, points_buffer_index);
+	if (points_buffer_index < 800)
+    {
+        printf("SCAN INCOMPLET: %d points (< 800) - IGNORE\r\n", points_buffer_index);
+        return;  // Ne pas traiter ce scan
+    }
 
-	// fonction print_count_point_in_map
-	print_count_point_in_map(lidar_points_buffer, points_buffer_index);
-	
+
+	// Étape 1 : Filtrer les points valides (distance > 105mm ET dans terrain)
+	struct FilteredPoints filtered = point_in_map(lidar_points_buffer, points_buffer_index);
+
+	// Étape 2 : Tracking de l'adversaire avec les points filtrés
+	adversary_tracking(filtered.points, filtered.count);
 }
 
 
