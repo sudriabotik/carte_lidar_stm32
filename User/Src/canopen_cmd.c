@@ -20,6 +20,21 @@ void canopen_cmd_set_status(lidar_node_status status)
 	OD_RAM.x2302_status_carte_lidar = (uint8_t)status;
 }
 
+int16_t canopen_cmd_get_robot_x()
+{
+	return OD_RAM.x2200_pos_robot_x;
+}
+
+int16_t canopen_cmd_get_robot_y()
+{
+	return OD_RAM.x2201_pos_robot_y;
+}
+
+int16_t canopen_cmd_get_robot_theta()
+{
+	return OD_RAM.x2202_pos_robot_theta;
+}
+
 void canopen_cmd_send_lidar_packet()
 {
 	CO_TPDOsendRequest(&canopenNodeSTM32->canOpenStack->TPDO[2]);

@@ -1,4 +1,5 @@
 # include "lidar_data_processor.h"
+#include "coords.h"
 
 # include <stdio.h>
 # include <math.h>
@@ -13,15 +14,10 @@ int blob_w_min = 10;
 /** The maximum width of the blob, in mm */
 int blob_w_max = 100;
 
-// ce n'est pas trés clair ces variables
-int16_t lidar_x_pos = 700;
-int16_t lidar_y_pos = 300;
-float lidar_angle = -90; 
-
 //on utilise 
-uint16_t pos_x_robot = 700 ;
-uint16_t pos_y_robot = 300 ;
-int pos_theta_robot = 0;
+uint16_t pos_x_robot = 2800;
+uint16_t pos_y_robot = 1000;
+int pos_theta_robot = M_PI;
 
 
 /** circular index */
@@ -59,8 +55,8 @@ float calc_derivative_distance(struct lidar_datapoint* data, int data_size, unsi
 struct Point2D get_world_position(struct lidar_datapoint point)
 {
 	struct Point2D temp;
-	temp.x = lidar_x_pos + cosf(lidar_angle / 180 * M_PI) * point.x_pos + sinf(lidar_angle / 180 * M_PI) * point.y_pos;
-	temp.y = - lidar_x_pos + sinf(lidar_angle / 180 * M_PI) * point.x_pos + cosf(lidar_angle / 180 * M_PI) * point.y_pos;
+	temp.x = pos_x_robot + cosf(pos_theta_robot / 180 * M_PI) * point.x_pos + sinf(pos_theta_robot / 180 * M_PI) * point.y_pos;
+	temp.y =  pos_y_robot + sinf(pos_theta_robot / 180 * M_PI) * point.x_pos + cosf(pos_theta_robot / 180 * M_PI) * point.y_pos;
 	return temp;
 }
 
@@ -89,6 +85,7 @@ struct Point2D get_world_position(struct lidar_datapoint point)
  * @note Cette version V2 corrige le bug de la version précédente qui utilisait
  *       "- lidar_x_pos" au lieu de "lidar_y_pos" pour le calcul de temp.y
  */
+/*
 struct Point2D get_world_position_v2(struct lidar_datapoint point)
 {
 	struct Point2D temp;
@@ -111,6 +108,7 @@ struct Point2D get_world_position_v2(struct lidar_datapoint point)
 
 	return temp;
 }
+*/
 
 int from_clock_wise_to_trigo_in_deg(uint16_t deg_clk_wise)
 {
@@ -227,16 +225,16 @@ struct FilteredPoints point_in_map(struct lidar_datapoint* data, int data_size)
 		result.count++;
 
 		// Debug: Afficher les coordonnées terrain de chaque point valide
-		printf("  Point %d: T(%.0f, %.0f) mm\r\n", result.count, world_pos.x, world_pos.y);
+	// 	printf("  Point %d: T(%.0f, %.0f) mm\r\n", result.count, world_pos.x, world_pos.y);
 	}
 
 	// Affichage debug du filtrage
-	printf("=== FILTRAGE POINTS ===\r\n");
-	printf("Total points recus: %d\r\n", data_size);
-	printf("Points rejetes (distance < 105mm): %d\r\n", points_rejected_distance);
-	printf("Points hors terrain: %d\r\n", points_outside_terrain);
-	printf("Points valides dans terrain: %d\r\n", result.count);
-	printf("----------------------\r\n");
+	// // printf("=== FILTRAGE POINTS ===\r\n");
+	// printf("Total points recus: %d\r\n", data_size);
+	// printf("Points rejetes (distance < 105mm): %d\r\n", points_rejected_distance);
+	// printf("Points hors terrain: %d\r\n", points_outside_terrain);
+	// printf("Points valides dans terrain: %d\r\n", result.count);
+	// printf("----------------------\r\n");
 
 	return result;
 }
@@ -246,6 +244,7 @@ struct Point2D lidar_processor_find_blob(struct lidar_datapoint* data, int data_
 	int index_last_break = 0;
 	float last_distance_slope = 0.0f;
 	int blob_count = 0;  // Compteur de blobs détectés
+	struct Point2D result;
 
 	printf("angle slope break\r\n");
 
@@ -283,4 +282,6 @@ struct Point2D lidar_processor_find_blob(struct lidar_datapoint* data, int data_
 	// Affiche le résultat final
 	printf("Blobs detected: %d\r\n", blob_count);
 	printf("--END--\r\n");
+
+	return result;
 }
