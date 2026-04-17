@@ -7,15 +7,22 @@
 /** over how many points the distance derivative is taken */
 
 
+
 //on utilise 
-uint16_t pos_x_robot = 2500;
-uint16_t pos_y_robot = 400;
+int16_t pos_x_robot = 2500;
+int16_t pos_y_robot = 400;
 int pos_theta_robot = 90;
 
 
-uint16_t get_robot_x() {return pos_x_robot;}
-uint16_t get_robot_y() {return pos_y_robot;}
+
+int16_t get_robot_x() {return pos_x_robot;}
+int16_t get_robot_y() {return pos_y_robot;}
 int get_robot_theta() {return pos_theta_robot;}
+
+void set_robot_x(int16_t x) {pos_x_robot = x;}
+void set_robot_y(int16_t y) {pos_y_robot = y;}
+void set_robot_theta(int16_t theta) {pos_theta_robot = theta;}
+
 
 
 int from_clock_wise_to_trigo_in_deg(uint16_t deg_clk_wise)

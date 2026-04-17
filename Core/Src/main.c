@@ -18,6 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "canopen_cmd.h"
 #include "fdcan.h"
 #include "tim.h"
 #include "usart.h"
@@ -149,6 +150,8 @@ int main(void)
     /* USER CODE BEGIN 3 */
 
     loop_count++;
+
+	canopen_cmd_fetch_robot_pos();
 
     // === DIAGNOSTIC: Affiche les flags UART2 toutes les secondes ===
     if (HAL_GetTick() - last_print_tick >= 1000)

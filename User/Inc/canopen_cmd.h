@@ -20,6 +20,8 @@ void canopen_handler_process();
 
 void canopen_cmd_set_status(lidar_node_status status);
 
+void canopen_cmd_fetch_robot_pos();
+
 void canopen_cmd_set_opponent_data(uint16_t pos_x_mm, uint16_t pos_y_mm);
 
 # endif

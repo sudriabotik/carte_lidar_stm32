@@ -33,9 +33,17 @@ struct FilteredPoints {
 	int count;  // Nombre de points valides après filtrage
 };
 
-uint16_t get_robot_x();
-uint16_t get_robot_y();
+
+
+int16_t get_robot_x();
+int16_t get_robot_y();
 int get_robot_theta();
+
+void set_robot_x(int16_t x);
+void set_robot_y(int16_t y);
+void set_robot_theta(int16_t theta);
+
+
 
 struct Point2D get_world_position(struct lidar_datapoint point);
 
