@@ -13,7 +13,7 @@
 #include "lidar_data_processor.h"
 
 // Paramètres de tracking (modifiables selon les tests)
-#define MIN_POINTS_FOR_BLOB 8             // Au moins 6 points pour considérer un objet
+#define MIN_POINTS_FOR_BLOB 4             // Au moins x points pour considérer un objet
 #define DIAMETRE_MAX_BLOB 400              // Distance max entre 2 points d'un même blob (mm)
 #define MAX_POSITION_JUMP 500              // Déplacement max entre 2 scans (mm)
 #define MIN_CONSECUTIVE_DETECTIONS 2       // Scans consécutifs pour confirmer

@@ -151,6 +151,7 @@ int main(void)
 
     loop_count++;
 
+	// update the robot position used when calculating the absolute position of the points on the table
 	canopen_cmd_fetch_robot_pos();
 
     // === DIAGNOSTIC: Affiche les flags UART2 toutes les secondes ===
