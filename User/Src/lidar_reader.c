@@ -1,6 +1,8 @@
 # include "lidar_reader.h"
+#include "canopen_cmd.h"
 #include "lidar_data_processor.h"
 # include "stm32g4xx_hal.h"
+#include <stdint.h>
 # include <stdio.h>
 # include <math.h>
 # include <memory.h>
@@ -110,8 +112,11 @@ void lidar_process_360_points()
 	// Étape 2 : Tracking de l'adversaire avec les points filtrés
 	adversary_tracking(filtered.points, filtered.count);
 
-	// Etape 3 : Retrouver la position de l'adversaire relative au robot.
 	struct AdversaryTracking opponent_data = get_adversary_state();
+
+	canopen_cmd_set_opponent_data((uint16_t)opponent_data.position_x, (uint16_t)opponent_data.position_y);
+
+	// Etape 3 : Retrouver la position de l'adversaire relative au robot.
 	float tmp_x = opponent_data.position_x - get_robot_x();
 	float tmp_y = opponent_data.position_y - get_robot_y();
 	float robot_rotation = get_robot_theta();
@@ -126,7 +131,21 @@ void lidar_process_360_points()
 	// first check if the opponent is in a "tunnel" extending infinitely behind and in front of the robot
 	if (rel_y > - 150 && rel_y < 150)
 	{
-		printf("THE OPPONENT IS IN THE TUNNER\r\n");
+		printf("THE OPPONENT IS IN THE TUNNEL\r\n");
+
+		if (rel_x > -600 && rel_x < 600)
+		{
+			printf("EVITEMENT\r\n");
+			canopen_cmd_set_status(LIDAR_NODE_AVOID);
+		}
+		else
+		{
+			canopen_cmd_set_status(LIDAR_NODE_NOTHING);
+		}
+	}
+	else
+	{
+		canopen_cmd_set_status(LIDAR_NODE_NOTHING);
 	}
 	
 }
