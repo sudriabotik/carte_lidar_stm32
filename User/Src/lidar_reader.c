@@ -1,5 +1,4 @@
 # include "lidar_reader.h"
-#include "lidar_data_processor.h"
 # include "stm32g4xx_hal.h"
 # include <stdio.h>
 # include <math.h>
@@ -7,8 +6,6 @@
 
 # include <lipkg_copy.h>
 # include "adversary_tracking.h"
-# include "canopen_cmd.h"
-# include "coords.h"
 
 
 
@@ -64,7 +61,7 @@ void lidar_dump_points()
 	for (int i = 0; i < points_buffer_index; i++)
 	{
 
-		if (filter_out_area(get_world_position_v3(lidar_points_buffer[i])))
+		if (filter_out_area(get_world_position(lidar_points_buffer[i])))
 		{
 			continue;
 		}
@@ -103,14 +100,11 @@ void lidar_process_360_points()
 {
 	printf("processing 360 data\r\n");
 
-
-	/**
 	if (points_buffer_index < 800)
     {
         printf("SCAN INCOMPLET: %d points (< 800) - IGNORE\r\n", points_buffer_index);
         return;  // Ne pas traiter ce scan
     }
-	*/
 
 
 	// Étape 1 : Filtrer les points valides (distance > 105mm ET dans terrain)
@@ -118,43 +112,6 @@ void lidar_process_360_points()
 
 	// Étape 2 : Tracking de l'adversaire avec les points filtrés
 	adversary_tracking(filtered.points, filtered.count);
-	struct AdversaryTracking tracking = get_adversary_state();
-
-	// Etape 3 : Envoyer la position actuelle de l'adversaire
-	canopen_cmd_set_opponent_data(tracking.position_x, tracking.position_y);
-
-	// Etape 4 : Définir le message de statut en fonction de si l'évitement est devant, derrière, ect
-	float x = canopen_cmd_get_robot_x();
-	float y = canopen_cmd_get_robot_y();
-	float theta = canopen_cmd_get_robot_theta();
-
-	float distance_opponent = sqrt((x - tracking.position_x)*(x - tracking.position_x) + (y - tracking.position_y)*(y - tracking.position_y));
-
-	// if the opponent is far enough, give up.
-	if (distance_opponent > 1800)
-	{
-		canopen_cmd_set_status(LIDAR_NODE_NOTHING);
-		return;
-	}
-
-	// check if the opponent is in front or behind
-	float dir_opponent = coord_get_target_angle_f(x, y, tracking.position_x, tracking.position_y);
-
-	float diff = coord_get_delta_angle(theta, dir_opponent);
-
-	if (diff > -M_PI/2 && diff < M_PI/2)
-	{
-		// the opponent is in front of the robot
-		printf("avoiding front\r\n");
-		canopen_cmd_set_status(LIDAR_NODE_OBSTACLE_FRONT);
-	}
-	else
-	{
-		// the opponent is at the back of the robot
-		printf("avoiding back\r\n");
-		canopen_cmd_set_status(LIDAR_NODE_OBSTACLE_BACK);
-	}
-
 }
 
 
@@ -293,7 +250,7 @@ void lidar_process_polling(void)
 	{
 		// Scan 360° complet détecté!
 		lidar_process_360_points();
-		lidar_dump_points();  // Décommenter pour afficher tous les points (génère beaucoup de prints!)
+		// lidar_dump_points();  // Décommenter pour afficher tous les points (génère beaucoup de prints!)
 
 		// Réinitialise pour le prochain scan
 		measurement_ongoing = 0;

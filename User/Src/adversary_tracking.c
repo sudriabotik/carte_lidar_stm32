@@ -10,9 +10,6 @@
 #include <math.h>
 #include <stdio.h>
 
-
-//# define CLUSTER_VERBOSE
-
 // Variable statique de tracking (persiste entre les appels)
 static struct AdversaryTracking tracker = {0};
 
@@ -135,9 +132,7 @@ static struct BlobDetection detect_blob(struct TerrainPoint* points, int count)
                                                clusters[i].center_y * clusters[i].center_y);
     }
 
-# ifdef CLUSTER_VERBOSE
     // Étape 3 : Afficher tous les clusters avec leurs points pour debug
-
     printf("=== CLUSTERING ===\r\n");
     printf("Clusters detectes: %d\r\n", clusters_count);
     for (int i = 0; i < clusters_count; i++)
@@ -167,7 +162,6 @@ static struct BlobDetection detect_blob(struct TerrainPoint* points, int count)
         }
         printf("\r\n");
     }
-# endif
 
     // Étape 4 : Trouver le cluster le plus PROCHE du robot (pas le plus gros)
     int closest_cluster = -1;
@@ -194,15 +188,15 @@ static struct BlobDetection detect_blob(struct TerrainPoint* points, int count)
         blob.center_y = clusters[closest_cluster].center_y;
         blob.point_count = clusters[closest_cluster].point_count;
 
-        // printf("---\r\n");
-        // printf("BLOB SELECTIONNE: Cluster %d (le plus proche)\r\n", closest_cluster + 1);
-        // printf("------------------\r\n");
+        printf("---\r\n");
+        printf("BLOB SELECTIONNE: Cluster %d (le plus proche)\r\n", closest_cluster + 1);
+        printf("------------------\r\n");
     }
     else
     {
-        // printf("---\r\n");
-        // printf("AUCUN CLUSTER VALIDE (tous < %d points)\r\n", MIN_POINTS_FOR_BLOB);
-        // printf("------------------\r\n");
+        printf("---\r\n");
+        printf("AUCUN CLUSTER VALIDE (tous < %d points)\r\n", MIN_POINTS_FOR_BLOB);
+        printf("------------------\r\n");
     }
 
     return blob;
@@ -299,7 +293,6 @@ void adversary_tracking(struct TerrainPoint* filtered_points, int count)
     // Afficher le blob détecté (même si non confirmé)
     if (blob.found)
     {
-# ifdef CLUSTER_VERBOSE
         printf("BLOB DETECTE:\r\n");
         printf("  Position: (%.0f, %.0f) mm\r\n", blob.center_x, blob.center_y);
         printf("  Nombre de points: %d\r\n", blob.point_count);
@@ -315,7 +308,6 @@ void adversary_tracking(struct TerrainPoint* filtered_points, int count)
                    tracker.consecutive_detections,
                    MIN_CONSECUTIVE_DETECTIONS);
         }
-# endif
     }
     else
     {
