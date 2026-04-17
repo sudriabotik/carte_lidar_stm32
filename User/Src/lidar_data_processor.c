@@ -7,110 +7,16 @@
 /** over how many points the distance derivative is taken */
 
 
-/** The minimum width of the blob, in mm */
-int blob_w_min = 10;
-
-/** The maximum width of the blob, in mm */
-int blob_w_max = 100;
-
-// ce n'est pas trés clair ces variables
-int16_t lidar_x_pos = 700;
-int16_t lidar_y_pos = 300;
-float lidar_angle = -90; 
-
 //on utilise 
-uint16_t pos_x_robot = 700 ;
-uint16_t pos_y_robot = 300 ;
-int pos_theta_robot = 0;
+uint16_t pos_x_robot = 2500;
+uint16_t pos_y_robot = 400;
+int pos_theta_robot = 90;
 
 
-/** circular index */
-unsigned int c_index(int index, int data_size)
-{
-	return index % data_size;
-}
+uint16_t get_robot_x() {return pos_x_robot;}
+uint16_t get_robot_y() {return pos_y_robot;}
+int get_robot_theta() {return pos_theta_robot;}
 
-
-/** over how many points we take the derivative */
-# define DERIVATIVE_COUNT 3
-
-/**
- * Takes the derivative of the distance at a point, approximed with the points around.
- */
-float calc_derivative_distance(struct lidar_datapoint* data, int data_size, unsigned int index)
-{
-	int half_offset = DERIVATIVE_COUNT / 2;
-	float slope_avg = 0;
-
-	for (unsigned int i = 0; i < DERIVATIVE_COUNT; i++)
-	{
-		// calculate the slope between two neighbor points
-		float slope = data[c_index(index + i - half_offset, data_size)].distance - data[c_index(index + i - half_offset + 1, data_size)].distance;
-		slope *= data[c_index(index + i - half_offset, data_size)].angle - data[c_index(index + i - half_offset + 1, data_size)].angle;
-
-		slope_avg += slope;
-	}
-
-	slope_avg = slope_avg / DERIVATIVE_COUNT;
-
-	return slope_avg;
-}
-
-struct Point2D get_world_position(struct lidar_datapoint point)
-{
-	struct Point2D temp;
-	temp.x = lidar_x_pos + cosf(lidar_angle / 180 * M_PI) * point.x_pos + sinf(lidar_angle / 180 * M_PI) * point.y_pos;
-	temp.y = - lidar_x_pos + sinf(lidar_angle / 180 * M_PI) * point.x_pos + cosf(lidar_angle / 180 * M_PI) * point.y_pos;
-	return temp;
-}
-
-/**
- * @brief Transforme un point du repère LIDAR vers le repère TERRAIN (monde) - VERSION CORRIGÉE
- * @param point Point mesuré par le LIDAR en coordonnées cartésiennes (x_pos, y_pos en mm)
- * @return Coordonnées du point dans le repère terrain absolu (mm)
- *
- * Cette fonction effectue une transformation de coordonnées en 2 étapes:
- * 1. ROTATION du point selon l'orientation du robot (lidar_angle)
- * 2. TRANSLATION vers la position du robot sur le terrain (lidar_x_pos, lidar_y_pos)
- *
- * Formule mathématique (matrice de rotation 2D + translation):
- *
- *   [X_terrain]   [cos(θ)  -sin(θ)]   [X_lidar]   [X_robot]
- *   [Y_terrain] = [sin(θ)   cos(θ)] × [Y_lidar] + [Y_robot]
- *
- * Exemple concret:
- * - Robot positionné à (700, 300) mm sur le terrain
- * - Robot orienté à 0° (flèche LIDAR pointe vers l'avant)
- * - LIDAR détecte un obstacle à (500, 0) mm en coordonnées LIDAR (500mm devant le robot)
- * - Coordonnées terrain = (700 + 500×cos(0°) + 0×sin(0°), 300 + 500×sin(0°) + 0×cos(0°))
- *                       = (700 + 500, 300 + 0)
- *                       = (1200, 300) mm sur le terrain
- *
- * @note Cette version V2 corrige le bug de la version précédente qui utilisait
- *       "- lidar_x_pos" au lieu de "lidar_y_pos" pour le calcul de temp.y
- */
-struct Point2D get_world_position_v2(struct lidar_datapoint point)
-{
-	struct Point2D temp;
-
-	// Conversion angle en radians (lidar_angle est en degrés)
-	float angle_rad = lidar_angle / 180.0f * M_PI;
-
-	// Coordonnée X terrain = Position X du robot + composantes X et Y du point après rotation
-	// X_terrain = X_robot + cos(θ) × X_lidar + sin(θ) × Y_lidar
-	temp.x = lidar_x_pos
-	       + cosf(angle_rad) * point.x_pos   // Composante X du point tourné
-	       + sinf(angle_rad) * point.y_pos;  // Contribution de Y après rotation
-
-	// Coordonnée Y terrain = Position Y du robot + composantes X et Y du point après rotation
-	// Y_terrain = Y_robot + sin(θ) × X_lidar + cos(θ) × Y_lidar
-	// ⚠️ CORRECTION: Utilise lidar_y_pos au lieu de "- lidar_x_pos"
-	temp.y = lidar_y_pos
-	       + sinf(angle_rad) * point.x_pos   // Contribution de X après rotation
-	       + cosf(angle_rad) * point.y_pos;  // Composante Y du point tourné
-
-	return temp;
-}
 
 int from_clock_wise_to_trigo_in_deg(uint16_t deg_clk_wise)
 {
@@ -241,46 +147,3 @@ struct FilteredPoints point_in_map(struct lidar_datapoint* data, int data_size)
 	return result;
 }
 
-struct Point2D lidar_processor_find_blob(struct lidar_datapoint* data, int data_size)
-{
-	int index_last_break = 0;
-	float last_distance_slope = 0.0f;
-	int blob_count = 0;  // Compteur de blobs détectés
-
-	printf("angle slope break\r\n");
-
-	for (int i = 0; i < data_size + blob_w_max; i++)
-	{
-		int discontinuity = 0;
-		float angle = data[c_index(i, data_size)].angle / 100.0f;
-
-		if (filter_out_distance(data, c_index(i, data_size)))
-		{
-			// there is a discontinuity in the object
-			index_last_break = i;
-			discontinuity = 1;
-		}
-
-		float distance_slope = calc_derivative_distance(data, data_size, i);
-
-		if (fabs(distance_slope - last_distance_slope) > 10 || distance_slope > 50)
-		{
-			// there is a discontinuity in the object
-			index_last_break = i;
-			discontinuity = 1;
-		}
-
-		// Compte les discontinuités (blobs potentiels)
-		if (discontinuity == 1)
-		{
-			blob_count++;
-		}
-
-		// Print verbeux commenté pour réduire le traffic UART
-		// printf("anfle=%.3f  distance_slope%.3f discontinuity%i\r\n", angle, distance_slope, discontinuity);
-	}
-
-	// Affiche le résultat final
-	printf("Blobs detected: %d\r\n", blob_count);
-	printf("--END--\r\n");
-}

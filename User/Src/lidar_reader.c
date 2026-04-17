@@ -1,4 +1,5 @@
 # include "lidar_reader.h"
+#include "lidar_data_processor.h"
 # include "stm32g4xx_hal.h"
 # include <stdio.h>
 # include <math.h>
@@ -61,10 +62,6 @@ void lidar_dump_points()
 	for (int i = 0; i < points_buffer_index; i++)
 	{
 
-		if (filter_out_area(get_world_position(lidar_points_buffer[i])))
-		{
-			continue;
-		}
 		// convert to position
 		// float pos_x = cosf(lidar_points_buffer[i].x / 180 * M_PI) * lidar_points_buffer[i].y;
 		// float pos_y = sinf(lidar_points_buffer[i].x / 180 * M_PI) * lidar_points_buffer[i].y;
@@ -112,6 +109,26 @@ void lidar_process_360_points()
 
 	// Étape 2 : Tracking de l'adversaire avec les points filtrés
 	adversary_tracking(filtered.points, filtered.count);
+
+	// Etape 3 : Retrouver la position de l'adversaire relative au robot.
+	struct AdversaryTracking opponent_data = get_adversary_state();
+	float tmp_x = opponent_data.position_x - get_robot_x();
+	float tmp_y = opponent_data.position_y - get_robot_y();
+	float robot_rotation = get_robot_theta();
+
+	// rotate the relative x and y to be in the robot's basis (+x front, +y left)
+	float rel_x = tmp_x * cosf(robot_rotation / 180 * M_PI) - tmp_y * sinf(robot_rotation / 180 * M_PI);
+	float rel_y = tmp_x * sinf(robot_rotation / 180 * M_PI) + tmp_y * cosf(robot_rotation / 180 * M_PI);
+	
+
+	// Etape 3 : Detecter si l'adversaire est dans un carré devant ou derrière le robot
+	
+	// first check if the opponent is in a "tunnel" extending infinitely behind and in front of the robot
+	if (rel_y > - 150 && rel_y < 150)
+	{
+		printf("THE OPPONENT IS IN THE TUNNER\r\n");
+	}
+	
 }
 
 
