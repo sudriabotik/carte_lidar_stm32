@@ -61,7 +61,7 @@ int AnalysisOne(uint8_t byte) {
   static uint8_t tmp[128] = {0};
   static uint16_t pkg_count = sizeof(LiDARFrameTypeDef);
 
-  // printf("%i state, %u count\r\n", state, count);
+  printf("%i state, %u count\r\n", state, count);
 
   switch (state) {
     case HEADER:
@@ -76,7 +76,7 @@ int AnalysisOne(uint8_t byte) {
         tmp[count++] = byte;
         state = DATA;
       } else {
-		  // printf("frame err : ver len not found\r\n");
+		printf("frame err : ver len not found\r\n");
         state = HEADER;
         count = 0;
         return 0;
@@ -90,10 +90,10 @@ int AnalysisOne(uint8_t byte) {
         state = HEADER;
         count = 0;
         if (crc == buffer_frame.crc8) {
-		  // printf("frame : crc8 correct\r\n");
+		  printf("frame : crc8 correct\r\n");
           return 1;
         } else {
-		  // printf("frame err : crc8\r\n");
+		  printf("frame err : crc8\r\n");
           return 0;
         }
       }

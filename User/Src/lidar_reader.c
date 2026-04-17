@@ -97,11 +97,11 @@ int lidar_compare_with_initial_angle(float current_angle)
  */
 void lidar_process_360_points()
 {
-	printf("processing 360 data\r\n");
+	printf("processing 360 data with %i points\r\n", points_buffer_index);
 
-	if (points_buffer_index < 800)
+	if (points_buffer_index < 400)
     {
-        printf("SCAN INCOMPLET: %d points (< 800) - IGNORE\r\n", points_buffer_index);
+        printf("SCAN INCOMPLET: %d points (< 400) - IGNORE\r\n", points_buffer_index);
         return;  // Ne pas traiter ce scan
     }
 
@@ -113,6 +113,8 @@ void lidar_process_360_points()
 	adversary_tracking(filtered.points, filtered.count);
 
 	struct AdversaryTracking opponent_data = get_adversary_state();
+
+	if (! opponent_data.is_detected) return;
 
 	canopen_cmd_set_opponent_data((uint16_t)opponent_data.position_x, (uint16_t)opponent_data.position_y);
 
@@ -161,6 +163,10 @@ void lidar_process_360_points()
 void lidar_process_buffer(volatile uint8_t* buffer)
 {
 	lidar_rx_buffer_busy = 1;
+	
+	unsigned int bytes_dropped = 0;
+
+	// printf("[DEBUG] started new scan with point buffer index %i\r\n", points_buffer_index);
 
 	for (unsigned int i = 0; i < LIDAR_RX_BUFFER_SIZE; i++)
 	{
@@ -199,7 +205,7 @@ void lidar_process_buffer(volatile uint8_t* buffer)
 				else
 				{
 					// shouldn't happen, the buffer should be big enough
-					//printf("WARN : reached end of point buffer");
+					printf("WARN : reached end of point buffer");
 				}
 			}
 
@@ -223,9 +229,12 @@ void lidar_process_buffer(volatile uint8_t* buffer)
 		}
 		else
 		{
-			// printf("frame dropped\r\n");
+			bytes_dropped ++;
 		}
 	}
+
+	// printf("[DEBUG] finished scan with point buffer index %i\r\n", points_buffer_index);
+	// printf("[DEBUG] dropped %u bytes\r\n", bytes_dropped);
 
 	lidar_rx_buffer_busy = 0;
 }
