@@ -114,7 +114,11 @@ void lidar_process_360_points()
 
 	struct AdversaryTracking opponent_data = get_adversary_state();
 
-	if (! opponent_data.is_detected) return;
+	if (! opponent_data.is_detected)
+	{
+		canopen_cmd_set_status(LIDAR_NODE_NOTHING);
+		return;
+	}
 
 	canopen_cmd_set_opponent_data((uint16_t)opponent_data.position_x, (uint16_t)opponent_data.position_y);
 

@@ -20,6 +20,7 @@
 #include "main.h"
 #include "canopen_cmd.h"
 #include "fdcan.h"
+#include "lidar_data_processor.h"
 #include "tim.h"
 #include "usart.h"
 #include "gpio.h"
@@ -126,6 +127,8 @@ int main(void)
   printf("[LIDAR] Buffer size: %d bytes (single buffer)\r\n", LIDAR_RX_BUFFER_SIZE);
   printf("[LIDAR] Ready to receive LIDAR data\r\n");
 
+  canopen_cmd_init();
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -153,6 +156,7 @@ int main(void)
 
 	// update the robot position used when calculating the absolute position of the points on the table
 	canopen_cmd_fetch_robot_pos();
+	// printf("robot pos is %i, %i and %i\r\n", get_robot_x(), get_robot_y(), get_robot_theta());
 
     // === DIAGNOSTIC: Affiche les flags UART2 toutes les secondes ===
     if (HAL_GetTick() - last_print_tick >= 1000)

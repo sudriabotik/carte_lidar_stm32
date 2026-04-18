@@ -14,7 +14,7 @@ typedef enum
 
 
 
-void canopen_handler_init();
+void canopen_cmd_init();
 
 void canopen_handler_process();
 

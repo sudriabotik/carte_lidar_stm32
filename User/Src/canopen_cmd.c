@@ -33,13 +33,12 @@ void canopen_cmd_fetch_robot_pos()
 	set_robot_theta(OD_RAM.x2202_pos_robot_theta);
 }
 
-void canopen_cmd_handler_init()
+void canopen_cmd_init()
 {
-	
-}
+	canopen_cmd_set_status(LIDAR_NODE_NOTHING);
 
-void canopen_cmd_handler_process()
-{
-	
+	OD_RAM.x2200_pos_robot_x = 200;
+	OD_RAM.x2201_pos_robot_y = 0;
+	OD_RAM.x2202_pos_robot_theta = 0; // in degrees, trigonometric direction
 }
 

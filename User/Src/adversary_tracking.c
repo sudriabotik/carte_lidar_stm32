@@ -10,6 +10,8 @@
 #include <math.h>
 #include <stdio.h>
 
+// # define CLUSTERING_VERBOSE
+
 // Variable statique de tracking (persiste entre les appels)
 static struct AdversaryTracking tracker = {0};
 
@@ -132,6 +134,7 @@ static struct BlobDetection detect_blob(struct TerrainPoint* points, int count)
                                                clusters[i].center_y * clusters[i].center_y);
     }
 
+# ifdef CLUSTERING_VERBOSE
     // Étape 3 : Afficher tous les clusters avec leurs points pour debug
     printf("=== CLUSTERING ===\r\n");
     printf("Clusters detectes: %d\r\n", clusters_count);
@@ -162,6 +165,7 @@ static struct BlobDetection detect_blob(struct TerrainPoint* points, int count)
         }
         printf("\r\n");
     }
+# endif
 
     // Étape 4 : Trouver le cluster le plus PROCHE du robot (pas le plus gros)
     int closest_cluster = -1;
