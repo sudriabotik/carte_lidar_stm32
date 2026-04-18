@@ -4,11 +4,14 @@
 # include <math.h>
 //# include "od.h"
 
-/** over how many points the distance derivative is taken */
 
 
+/** WARNING : MODIFIER CES VARIABLES NE MODIFIE PAS LA PASITION DU ROBOT
+ * car ces valeurs sont mises à jour periodiquement avec le dictionnaire canopen.
+ * Pour modifier la position initiale, aller dans L'initialisation de canopen_cmd.
+ */
 
-//on utilise 
+/** */
 int16_t pos_x_robot = 2500;
 int16_t pos_y_robot = 400;
 int pos_theta_robot = 90;
